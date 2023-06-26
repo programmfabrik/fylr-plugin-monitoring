@@ -27,6 +27,8 @@ Github has an overview page to get a list of [all release](https://github.com/pr
   * enable (true|false)
   * sensibility: Show license-dates in response? (true|false)
   * weeks before escalation (int). Configures how many weeks before the license expires, "response.license.escalate" should be set to "true".
+* systemright
+  * assign new systemright "monitoring_endpoint" to user and allow thereby usage of this custom endpoint
 
 # example
 
