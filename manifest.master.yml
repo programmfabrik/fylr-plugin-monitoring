@@ -1,0 +1,50 @@
+plugin:
+  name: monitoring-endpoint
+  version: 1.0
+  l10n: l10n/monitoring-endpoint.csv
+  displayname:
+    de-DE: Monitoring-Endpoint
+    en-US: Monitoring-Endpoint
+  info:
+    de-DE: Ergänzung der API um einen Monitoring-Endpoint
+    en-US: Adding a monitoring-endpoint to API
+  server:
+    api-version:
+      require: 1
+
+base_config:
+  - name: monitoring_endpoint
+    group: monitoring_endpoint
+    parameters:
+      enabled:
+        type: bool
+        position: 0
+      license_show_dates_in_response:
+        type: bool
+        position: 1
+      license_early_warning_in_weeks:
+        type: int
+        position: 2
+
+extensions:
+  monitoring:
+    exec:
+      service: "node"
+      commands:
+        - prog: "node"
+          stdin:
+            type: "body"
+          stdout:
+            type: "body"
+          args:
+            - type: "value"
+              value: "%_exec.pluginDir%/server/extension/monitoring-endpoint.js"
+            - type: "value"
+              value: "%info.json%"
+
+system_rights:
+  - name: monitoring_endpoint
+    comment: Adding a monitoring-endpoint to API
+    parameters:
+      - name: use_monitoring_endpoint
+        type: bool

@@ -1,0 +1,10 @@
+key,de-DE,en-US
+server.config.name.system.monitoring_endpoint,Monitoring-Endpoint,Monitoring-Endpoint
+server.config.parameter.system.monitoring_endpoint.enabled.label,Status,Status
+server.config.parameter.system.monitoring_endpoint.enabled.checkbox,Aktivieren,Activate
+server.config.parameter.system.monitoring_endpoint.license_show_dates_in_response.label,Sensibilität,Sensitivity
+server.config.parameter.system.monitoring_endpoint.license_show_dates_in_response.checkbox,Zeige Lizenzdatierungen im Endpoint,Show licensedates in endpoint
+server.config.parameter.system.monitoring_endpoint.license_early_warning_in_weeks.label,Anzahl Wochen vor Eskalation,Count of weeks before escalation
+server.right.system.plugin.monitoring-endpoint.monitoring_endpoint,Monitoring-Endpoint,Monitoring-Endpoint
+server.right.system.plugin.monitoring-endpoint.monitoring_endpoint.parm.label.use_monitoring_endpoint,Erlauben die Nutzung des Monitoring-Endpoint,Allow Usage of the monitoring-endpoint
+server.right.system.plugin.monitoring-endpoint.monitoring_endpoint.parm.use_monitoring_endpoint,Aktivieren,Activate
