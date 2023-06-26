@@ -13,6 +13,8 @@ You have to call this endpoint with a user that has been assigned the associated
 
 The user token has to be passed in the "X-Fylr-Authorization" header as usual.
 
+Hint: The "validation"-section checks configuration of https://github.com/programmfabrik/fylr-plugin-custom-vzg-validationhub
+
 ## installation
 
 The latest version of this plugin can be found [here](https://github.com/programmfabrik/fylr-plugin-monitoring-endpoint/releases/latest/download/monitoringEndpoint.zip).
