@@ -37,7 +37,7 @@ Github has an overview page to get a list of [all release](https://github.com/pr
 ```
 X-Fylr-Authorization: Bearer ory_at__koe72_qYqjqi2C6AHYhiDLFjpWl4Cf_EbDVq399eCU.XtkKitMB3o7U1dhebX6WuK9123EkQ3W77zQeFTKPTAc
 
-GET https://example.fylr.io/api/v1/plugin/base/monitoring-endpoint/monitoring"
+GET https://example.fylr.io/api/v1/plugin/base/monitoring/monitoring"
 ```
 
 Result is as usual "application/json" and has the following structure
