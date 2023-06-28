@@ -4,10 +4,10 @@ Programmfabrik GmbH. Please use the github issue tracking to report bugs
 and self organize bug fixing. Feel free to directly contact the committing
 developers.
 
-# fylr-plugin-monitoring-endpoint
+# fylr-plugin-monitoring
 Custom monitoring-endpoint for fylr-API
 
-The plugin provides a new API endpoint under "GET /api/v1/plugin/base/monitoring-endpoint/monitoring".
+The plugin provides a new API endpoint under "GET /api/v1/plugin/base/monitoring/monitoring".
 
 You have to call this endpoint with a user that has been assigned the associated "Allow Monitoring-Endpoint" system right.
 
@@ -17,11 +17,11 @@ Hint: The "validation"-section checks configuration of https://github.com/progra
 
 ## installation
 
-The latest version of this plugin can be found [here](https://github.com/programmfabrik/fylr-plugin-monitoring-endpoint/releases/latest/download/monitoringEndpoint.zip).
+The latest version of this plugin can be found [here](https://github.com/programmfabrik/fylr-plugin-monitoring/releases/latest/download/monitoringEndpoint.zip).
 
 The ZIP can be downloaded and installed using the plugin manager, or used directly (recommended).
 
-Github has an overview page to get a list of [all release](https://github.com/programmfabrik/fylr-plugin-monitoring-endpoint/releases/).
+Github has an overview page to get a list of [all release](https://github.com/programmfabrik/fylr-plugin-monitoring/releases/).
 
 ## configuration
 
