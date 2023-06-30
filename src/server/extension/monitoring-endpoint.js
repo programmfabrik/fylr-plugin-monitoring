@@ -33,7 +33,6 @@ process.stdin.on('data', d => {
 });
 
 process.stdin.on('end', () => {
-  //console.log(info);
 
   let result = {};
 
@@ -44,10 +43,10 @@ process.stdin.on('end', () => {
   result.email = {}
   //////////////////////////////////////////////////////////////
   // notifications?
-  let notifications = 'false';
+  let notifications = false;
   if (info.config && info.config.system && info.config.system.config && info.config.system.config.notification_scheduler && info.config.system.config.notification_scheduler.active) {
     if (info.config.system.config.notification_scheduler.active = true) {
-      notifications = 'true';
+      notifications = true;
     }
   }
   result.email.notifications = notifications;
@@ -80,10 +79,10 @@ process.stdin.on('end', () => {
 
   //////////////////////////////////////////////////////////////
   // Janitor-Status
-  let janitorActive = 'false';
+  let janitorActive = false;
   if (info.config && info.config.system && info.config.system.config && info.config.system.config.janitor && info.config.system.config.janitor.active) {
     if (info.config.system.config.janitor.active = true) {
-      janitorActive = 'true';
+      janitorActive = true;
     }
   }
   result.janitorActive = janitorActive;
@@ -100,20 +99,20 @@ process.stdin.on('end', () => {
   result.purge = {};
   //////////////////////////////////////////////////////////////
   // allow purge?
-  let allowPurge = 'false';
+  let allowPurge = false;
   if (info.config && info.config.system && info.config.system.config && info.config.system.config.purge && info.config.system.config.purge.allow_purge) {
     if (info.config.system.config.purge.allow_purge = true) {
-      allowPurge = 'true';
+      allowPurge = true;
     }
   }
   result.purge.allowPurge = allowPurge;
 
   //////////////////////////////////////////////////////////////
   // allow purge storage?
-  let allowPurgeStorage = 'false';
+  let allowPurgeStorage = false;
   if (info.config && info.config.system && info.config.system.config && info.config.system.config.purge && info.config.system.config.purge.purge_storage) {
     if (info.config.system.config.purge.purge_storage = true) {
-      allowPurgeStorage = 'true';
+      allowPurgeStorage = true;
     }
   }
   result.purge.allowPurgeStorage = allowPurgeStorage;
@@ -129,10 +128,10 @@ process.stdin.on('end', () => {
   result.license = {}
   //////////////////////////////////////////////////////////////
   // license active
-  let licenseActive = 'false';
+  let licenseActive = false;
   if (info.config && info.config.system && info.config.system.config && info.config.system.config.license && info.config.system.config.license.active) {
     if (info.config.system.config.license.active = true) {
-      licenseActive = 'true';
+      licenseActive = true;
     }
   }
   result.license.licenseActive = licenseActive;
