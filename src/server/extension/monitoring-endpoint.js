@@ -147,7 +147,7 @@ process.stdin.on('end', () => {
   //////////////////////////////////////////////////////////////
   // license valid to
   let licenseValidTo = '-';
-  if (info.config && info.config.system && info.config.system.config && info.config.system.config.license && info.config.system.config.license.license && info.config.system.config.license.license.valid.to) {
+  if (info.config && info.config.system && info.config.system.config && info.config.system.config.license && info.config.system.config.license.license && info.config.system.config.license.license.valid && info.config.system.config.license.license.valid.to) {
     licenseValidTo = info.config.system.config.license.license.valid.to;
   }
   result.license.licenseValidTo = licenseValidTo;
