@@ -313,25 +313,27 @@ process.stdin.on('end', () => {
     }
     result.validation.validationEnabled = validationEnabled;
 
-    // check if all objecttypes and tags, which are used in validation still exist!
-    const objecttypeList = Object.keys(infoData[0].Stats.indices_objects.ObjectRead);
-    const tagList = infoData[4].Tags.flatMap(item => item.Tags.map(tag => tag.Id));
-    // check tags
-    const tagfilter_select = sessionData.config.base.plugin['custom-vzg-validationhub'].config['VZG-Validationhub'].tagfilter_select;
-    const anyMatch = tagfilter_select.any.every(id => tagList.includes(id));
-    const allMatch = tagfilter_select.all.every(id => tagList.includes(id));
-    const notMatch = tagfilter_select.not.every(id => tagList.includes(id));
-    let tagFilterFine = false;
-    if (anyMatch && allMatch && notMatch) {
-      tagFilterFine = true;
-    }
-    result.validation.tagFilterValid = tagFilterFine;
-    // check objecttypes
-    const validation_selector = JSON.parse(sessionData.config.base.plugin['custom-vzg-validationhub'].config['VZG-Validationhub'].validation_selector);
-    const objectTypes = validation_selector.data_table.map(item => item.objecttype);
-    const allPresent = objectTypes.every(objectType => objecttypeList.includes(objectType));
+    if (validationEnabled == true) {
+      // check if all objecttypes and tags, which are used in validation still exist!
+      const objecttypeList = Object.keys(infoData[0].Stats.indices_objects.ObjectRead);
+      const tagList = infoData[4].Tags.flatMap(item => item.Tags.map(tag => tag.Id));
+      // check tags
+      const tagfilter_select = sessionData.config.base.plugin['custom-vzg-validationhub'].config['VZG-Validationhub'].tagfilter_select;
+      const anyMatch = tagfilter_select.any.every(id => tagList.includes(id));
+      const allMatch = tagfilter_select.all.every(id => tagList.includes(id));
+      const notMatch = tagfilter_select.not.every(id => tagList.includes(id));
+      let tagFilterFine = false;
+      if (anyMatch && allMatch && notMatch) {
+        tagFilterFine = true;
+      }
+      result.validation.tagFilterValid = tagFilterFine;
+      // check objecttypes
+      const validation_selector = JSON.parse(sessionData.config.base.plugin['custom-vzg-validationhub'].config['VZG-Validationhub'].validation_selector);
+      const objectTypes = validation_selector.data_table.map(item => item.objecttype);
+      const allPresent = objectTypes.every(objectType => objecttypeList.includes(objectType));
 
-    result.validation.objecttypeFilterValid = allPresent;
+      result.validation.objecttypeFilterValid = allPresent;
+    }
 
     // parse info from settings (via session)
     result.name = sessionData.instance.name;
