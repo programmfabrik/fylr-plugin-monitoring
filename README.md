@@ -51,22 +51,22 @@ Result is as usual "application/json" and has the following structure
 ```
 {
   "email": {
-    "notifications": "true",
+    "notifications": true,
     "email_server": "mailer.example.de:25",
     "adminEmails": [
       "r*a*a*.*e*m*@*c*.*a",
       "a*d*e*@*.*d"
     ]
   },
-  "janitorActive": "false",
+  "janitorActive": false,
   "logLevel": "debug",
   "purge": {
-    "allowPurge": "false",
-    "allowPurgeStorage": "false"
+    "allowPurge": false,
+    "allowPurgeStorage": false
   },
   "objectstore": "-",
   "license": {
-    "licenseActive": "false",
+    "licenseActive": false,
     "licenseCreatedAt": "2023-06-15T12:45:13+02:00",
     "licenseValidTo": "2024-06-15T12:45:13+02:00",
     "escalate": false
