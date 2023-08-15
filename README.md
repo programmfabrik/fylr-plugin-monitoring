@@ -29,6 +29,13 @@ Github has an overview page to get a list of [all release](https://github.com/pr
   * enable (true|false)
   * sensibility: Show license-dates in response? (true|false)
   * weeks before escalation (int). Configures how many weeks before the license expires, "response.license.escalate" should be set to "true".
+
+  * What to do: Email settings incomplete (nothing, warning,error)
+  * What to do: License-Problems (nothing, warning,error)
+  * What to do: Problems with validation (nothing, warning,error)
+  * What to do: Purge is active (nothing, warning,error)
+  * What to do: Loglevel is debug/trace (nothing, warning,error)
+
 * systemright
   * assign new systemright "monitoring_endpoint" to user and allow thereby usage of this custom endpoint
 
@@ -37,7 +44,7 @@ Github has an overview page to get a list of [all release](https://github.com/pr
 ```
 X-Fylr-Authorization: Bearer ory_at__koe72_qYqjqi2C6AHYhiDLFjpWl4Cf_EbDVq399eCU.XtkKitMB3o7U1dhebX6WuK9123EkQ3W77zQeFTKPTAc
 
-GET https://example.fylr.io/api/v1/plugin/base/monitoring-endpoint/monitoring"
+GET https://example.fylr.io/api/v1/plugin/extension/monitoring-endpoint/monitoring"
 ```
 
 Result is as usual "application/json" and has the following structure
@@ -79,13 +86,13 @@ Result is as usual "application/json" and has the following structure
   "validation": {
     "validationEnabled": true,
     "tagFilterValid": true,
-    "objecttypeFilterValid": true
+    "objecttypeFilterValid": false
   },
   "name": "8aa5f869-1111-41bc-aaaa-74a4b34616ef",
   "config_name": "fylr",
   "startup_time": "2023-06-26T12:57:55Z",
   "version": "v6.5.0",
-  "build_commit": "46af7253a58c79244ee48145eb4f7e0f26880c61",
+  "build_commit": "46af7aa3a58c79244ee48145eb4f7e0f26880c61",
   "build_commit_time": "2023-06-20T18:58:36Z",
   "statistics": {
     "user": 8,
@@ -100,7 +107,9 @@ Result is as usual "application/json" and has the following structure
       "object": 1,
       "wordpress": 10
     }
-  }
+  },
+  "status": "warning",
+  "statusmessage": "Problems: Validation"
 }
 
 ```

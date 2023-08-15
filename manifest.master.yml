@@ -25,6 +25,46 @@ base_config:
       license_early_warning_in_weeks:
         type: int
         position: 2
+      status__email:
+        type: select
+        options:
+          - nothing
+          - warning
+          - error
+        default: "error"
+        position: 3
+      status__license:
+        type: select
+        options:
+          - nothing
+          - warning
+          - error
+        default: "error"
+        position: 4
+      status__validation:
+        type: select
+        options:
+          - nothing
+          - warning
+          - error
+        default: "error"
+        position: 5
+      status__purge:
+        type: select
+        options:
+          - nothing
+          - warning
+          - error
+        default: "warning"
+        position: 6
+      status__loglevel:
+        type: select
+        options:
+          - nothing
+          - warning
+          - error
+        default: "warning"
+        position: 7
 
 extensions:
   monitoring:

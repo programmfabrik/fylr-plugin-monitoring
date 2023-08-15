@@ -8,3 +8,28 @@ server.config.parameter.system.monitoring_endpoint.license_early_warning_in_week
 server.right.system.plugin.monitoring-endpoint.monitoring_endpoint,Monitoring-Endpoint,Monitoring-Endpoint
 server.right.system.plugin.monitoring-endpoint.monitoring_endpoint.parm.label.use_monitoring_endpoint,Erlauben die Nutzung des Monitoring-Endpoint,Allow Usage of the monitoring-endpoint
 server.right.system.plugin.monitoring-endpoint.monitoring_endpoint.parm.use_monitoring_endpoint,Aktivieren,Activate
+
+server.config.parameter.system.monitoring_endpoint.status__email.label,Was tun: E-Mail-Einstellungen unvollständig,What to do: Email settings incomplete
+server.config.option.system.monitoring_endpoint.status__email.nothing,Nichts,Nothing
+server.config.option.system.monitoring_endpoint.status__email.warning,Warnung,Warning
+server.config.option.system.monitoring_endpoint.status__email.error,Fehler,Error
+
+server.config.parameter.system.monitoring_endpoint.status__license.label,Was tun: Lizenz-Probleme,What to do: License-Problems
+server.config.option.system.monitoring_endpoint.status__license.nothing,Nichts,Nothing
+server.config.option.system.monitoring_endpoint.status__license.warning,Warnung,Warning
+server.config.option.system.monitoring_endpoint.status__license.error,Fehler,Error
+
+server.config.parameter.system.monitoring_endpoint.status__validation.label,Was tun: Probleme mit der Validierung,What to do: Problems with validation
+server.config.option.system.monitoring_endpoint.status__validation.nothing,Nichts,Nothing
+server.config.option.system.monitoring_endpoint.status__validation.warning,Warnung,Warning
+server.config.option.system.monitoring_endpoint.status__validation.error,Fehler,Error
+
+server.config.parameter.system.monitoring_endpoint.status__purge.label,Was tun: Purge ist aktiviert,What to do: Purge is active
+server.config.option.system.monitoring_endpoint.status__purge.nothing,Nichts,Nothing
+server.config.option.system.monitoring_endpoint.status__purge.warning,Warnung,Warning
+server.config.option.system.monitoring_endpoint.status__purge.error,Fehler,Error
+
+server.config.parameter.system.monitoring_endpoint.status__loglevel.label,Was tun: Loglevel ist debug/trace,What to do: Loglevel is debug/trace
+server.config.option.system.monitoring_endpoint.status__loglevel.nothing,Nichts,Nothing
+server.config.option.system.monitoring_endpoint.status__loglevel.warning,Warnung,Warning
+server.config.option.system.monitoring_endpoint.status__loglevel.error,Fehler,Error

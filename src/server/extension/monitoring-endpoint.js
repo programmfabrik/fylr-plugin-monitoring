@@ -1,4 +1,4 @@
-// GET /api/v1/plugin/base/monitoring-endpoint/monitoring
+// GET /api/v1/plugin/extension/monitoring-endpoint/monitoring
 
 const fs = require('fs');
 const https = require('https');
@@ -40,7 +40,10 @@ process.stdin.on('end', () => {
   // Accesstoken
   let access_token = info.api_user_access_token;
 
-  result.email = {}
+  //////////////////////////////////////////////////////////////
+  // email-configs
+  result.email = {};
+
   //////////////////////////////////////////////////////////////
   // notifications?
   let notifications = false;
@@ -63,7 +66,8 @@ process.stdin.on('end', () => {
   // Admin-Emails
   let maskedEmails = [];
   if (info.config && info.config.system && info.config.system.config && info.config.system.config.email && info.config.system.config.email.admin_emails) {
-    const adminEmails = info.config.system.config.email.admin_emails;
+    let adminEmails = info.config.system.config.email.admin_emails;
+    adminEmails = adminEmails.filter(emailObj => emailObj.email.length > 0);
     maskedEmails = adminEmails.map(email => {
       email = email.email;
       let maskedEmail = '';
@@ -318,13 +322,18 @@ process.stdin.on('end', () => {
       const objecttypeList = Object.keys(infoData[0].Stats.indices_objects.ObjectRead);
       const tagList = infoData[4].Tags.flatMap(item => item.Tags.map(tag => tag.Id));
       // check tags
-      const tagfilter_select = sessionData.config.base.plugin['custom-vzg-validationhub'].config['VZG-Validationhub'].tagfilter_select;
-      const anyMatch = tagfilter_select.any.every(id => tagList.includes(id));
-      const allMatch = tagfilter_select.all.every(id => tagList.includes(id));
-      const notMatch = tagfilter_select.not.every(id => tagList.includes(id));
       let tagFilterFine = false;
-      if (anyMatch && allMatch && notMatch) {
+      const tagfilter_select = sessionData.config.base.plugin['custom-vzg-validationhub'].config['VZG-Validationhub'].tagfilter_select;
+      if (Object.keys(tagfilter_select).length === 0) {
         tagFilterFine = true;
+      } else {
+        const anyMatch = tagfilter_select.any.every(id => tagList.includes(id));
+        const allMatch = tagfilter_select.all.every(id => tagList.includes(id));
+        const notMatch = tagfilter_select.not.every(id => tagList.includes(id));
+
+        if (anyMatch && allMatch && notMatch) {
+          tagFilterFine = true;
+        }
       }
       result.validation.tagFilterValid = tagFilterFine;
       // check objecttypes
@@ -343,12 +352,12 @@ process.stdin.on('end', () => {
     result.build_commit = sessionData.instance.build_commit;
     result.build_commit_time = sessionData.instance.build_commit_time;
 
+    const pluginBaseConfig = sessionData.config.base.plugin['monitoring-endpoint'].config['monitoring_endpoint'];
+
     // check if plugin is enabled! Else error!
     let monitoringEnabled = false;
-    if (sessionData.config.base.plugin) {
-      if (sessionData.config.base.plugin['monitoring-endpoint'].config['monitoring_endpoint'].enabled == true) {
-        monitoringEnabled = true;
-      }
+    if (pluginBaseConfig.enabled == true) {
+      monitoringEnabled = true;
     }
     if (monitoringEnabled == false) {
       throwError("Monitoring-Endpoint nicht aktiviert!", '');
@@ -357,10 +366,8 @@ process.stdin.on('end', () => {
     // license-escalation-info
     let licenseEarlyWarningInWeeks = 2;
     let escalateValidation = false;
-    if (sessionData.config.base.plugin) {
-      if (sessionData.config.base.plugin['monitoring-endpoint'].config['monitoring_endpoint'].license_early_warning_in_weeks != null) {
-        licenseEarlyWarningInWeeks = sessionData.config.base.plugin['monitoring-endpoint'].config['monitoring_endpoint'].license_early_warning_in_weeks;
-      }
+    if (pluginBaseConfig.license_early_warning_in_weeks != null) {
+      licenseEarlyWarningInWeeks = pluginBaseConfig.license_early_warning_in_weeks;
     }
     const validToTimestamp = new Date(result.license.licenseValidTo);
     const currentDate = new Date();
@@ -373,10 +380,8 @@ process.stdin.on('end', () => {
 
     // shell the license-dates be echoed?
     let echoLicenseDates = false;
-    if (sessionData.config.base.plugin) {
-      if (sessionData.config.base.plugin['monitoring-endpoint'].config['monitoring_endpoint'].license_show_dates_in_response == true) {
-        echoLicenseDates = true;
-      }
+    if (pluginBaseConfig.license_show_dates_in_response == true) {
+      echoLicenseDates = true;
     }
     if (echoLicenseDates == false) {
       result.license.licenseCreatedAt = '-';
@@ -389,6 +394,97 @@ process.stdin.on('end', () => {
     result.statistics.group = infoData[0].Stats.indices_objects.BaseRead.group;
     result.statistics.pool = infoData[0].Stats.indices_objects.BaseRead.pool;
     result.statistics.objecttypes = infoData[0].Stats.indices_objects.ObjectRead;
+
+    //////////////////////////////////////////////////////////////
+    // summary-status (ok, warning, error)
+
+    function increaseStatus(code) {
+      if (result.status != 'error') {
+        if (code == 'warning') {
+          result.status = 'warning';
+        }
+      }
+      if (code == 'error') {
+        result.status = code;
+      }
+    }
+
+    result.status = 'ok';
+    result.statusmessage = 'everything as expected';
+
+    let statusEscalationLevels = {};
+
+    statusEscalationLevels = {};
+    statusEscalationLevels.email = pluginBaseConfig.status__email;
+    statusEscalationLevels.license = pluginBaseConfig.status__license;
+    statusEscalationLevels.validation = pluginBaseConfig.status__validation;
+    statusEscalationLevels.purge = pluginBaseConfig.status__purge;
+    statusEscalationLevels.loglevel = pluginBaseConfig.status__loglevel;
+
+    //result.statusEscalationLevels = statusEscalationLevels;
+
+    let statusResults = {};
+    statusResults = {};
+    statusResults.email = 'nothing';
+    statusResults.license = 'nothing';
+    statusResults.validation = 'nothing';
+    statusResults.purge = 'nothing';
+    statusResults.loglevel = 'nothing';
+
+    let statusMessages = [];
+
+    // check email for status-influence
+    if (statusEscalationLevels.email !== 'nothing') {
+      if (result.email.notifications !== true || result.email.email_server == '' || result.email.adminEmails.length == 0) {
+        statusResults.email = statusEscalationLevels.email;
+        statusMessages.push('E-Mail');
+        increaseStatus(statusEscalationLevels.email);
+      }
+    }
+
+    // check license for status-influence
+    if (statusEscalationLevels.license !== 'nothing') {
+      if (result.license.escalate === true || result.license.licenseActive !== true) {
+        statusResults.license = statusEscalationLevels.license;
+        statusMessages.push('License');
+        increaseStatus(statusEscalationLevels.license);
+      }
+    }
+
+    // check validation for status-influence
+    if (statusEscalationLevels.validation !== 'nothing') {
+      if (result.validation.validationEnabled === true) {
+        if (result.validation.tagFilterValid !== true || result.validation.objecttypeFilterValid !== true) {
+          statusResults.validation = statusEscalationLevels.validation;
+          statusMessages.push('Validation');
+          increaseStatus(statusEscalationLevels.validation);
+        }
+      }
+    }
+
+    // check purge for status-influence
+    if (statusEscalationLevels.purge !== 'nothing') {
+      if (result.purge.allowPurge === true || result.purge.allowPurgeStorage === true) {
+        statusResults.purge = statusEscalationLevels.purge;
+        statusMessages.push('Purge');
+        increaseStatus(statusEscalationLevels.purge);
+      }
+    }
+
+    // check loglevel for status-influence
+    if (statusEscalationLevels.loglevel !== 'nothing') {
+      if (result.logLevel === 'debug' || result.logLevel === 'trace') {
+        statusResults.loglevel = statusEscalationLevels.loglevel;
+        statusMessages.push('Loglevel');
+        increaseStatus(statusEscalationLevels.loglevel);
+      }
+    }
+
+    //result.statusResults = statusResults;
+
+    if (statusMessages.length > 0) {
+      result.statusmessage = 'Problems: ' + statusMessages.join(', ');
+    }
 
     console.log(JSON.stringify(result, null, 2));
   }
