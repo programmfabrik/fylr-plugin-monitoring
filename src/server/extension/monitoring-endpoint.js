@@ -164,6 +164,28 @@ process.stdin.on('end', () => {
   }
   result.plugins = pluginNames;
 
+  function getPluginInfoFromAPI() {
+    return new Promise((resolve, reject) => {
+      var url = 'http://fylr.localhost:8081/api/v1/plugin/manage?access_token=' + access_token
+      fetch(url, {
+          headers: {
+            'Accept': 'application/json'
+          },
+        })
+        .then(response => {
+          if (response.ok) {
+            resolve(response.json());
+          } else {
+            throwError("Fehler bei der Anfrage an /inspect/plugins/ ", '');
+          }
+        })
+        .catch(error => {
+          console.log(error);
+          throwError("Fehler bei der Anfrage an /inspect/plugins/ ", '');
+        });
+    });
+  }
+
   function getStatsInfoFromAPI() {
     return new Promise((resolve, reject) => {
       var url = 'http://fylr.localhost:8082/inspect/system/status/'
@@ -280,7 +302,8 @@ process.stdin.on('end', () => {
       getSessionInfoFromAPI(),
       getCURRENTFromAPI(),
       getHEADFromAPI(),
-      getTagInfoFromAPI()
+      getTagInfoFromAPI(),
+      getPluginInfoFromAPI()
     ]);
 
     // inspect Schema and check if there is an open commit
@@ -342,6 +365,25 @@ process.stdin.on('end', () => {
       const allPresent = objectTypes.every(objectType => objecttypeList.includes(objectType));
 
       result.validation.objecttypeFilterValid = allPresent;
+    }
+
+    // https://fylr-test.gbv.de/api/v1/plugin/manage
+    // https://fylr-test.gbv.de/inspect/plugins/
+
+    // disabled plugins?
+    result.pluginsAllEnabled = true;
+    pluginInfo = infoData[5].plugins;
+
+    disabledPlugins = pluginInfo.map(plugin => {
+      if (plugin.enabled == false) {
+        return plugin.name;
+      } else {
+        return;
+      }
+    }).filter(Boolean);
+    if (disabledPlugins.length > 0) {
+      result.pluginsAllEnabled = false;
+      result.pluginsDisabled = disabledPlugins;
     }
 
     // parse info from settings (via session)
@@ -420,6 +462,7 @@ process.stdin.on('end', () => {
     statusEscalationLevels.validation = pluginBaseConfig.status__validation;
     statusEscalationLevels.purge = pluginBaseConfig.status__purge;
     statusEscalationLevels.loglevel = pluginBaseConfig.status__loglevel;
+    statusEscalationLevels.pluginsallenabled = pluginBaseConfig.status__disabled_plugins;
 
     //result.statusEscalationLevels = statusEscalationLevels;
 
@@ -477,6 +520,15 @@ process.stdin.on('end', () => {
         statusResults.loglevel = statusEscalationLevels.loglevel;
         statusMessages.push('Loglevel');
         increaseStatus(statusEscalationLevels.loglevel);
+      }
+    }
+
+    // check disabled-plugins for status-influence
+    if (statusEscalationLevels.pluginsallenabled !== 'nothing') {
+      if (result.pluginsAllEnabled == false) {
+        statusResults.pluginsallenabled = statusEscalationLevels.pluginsallenabled;
+        statusMessages.push('Disabled plugins');
+        increaseStatus(statusEscalationLevels.pluginsallenabled);
       }
     }
 

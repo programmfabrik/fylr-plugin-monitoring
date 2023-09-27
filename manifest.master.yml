@@ -65,6 +65,14 @@ base_config:
           - error
         default: "warning"
         position: 7
+      status__disabled_plugins:
+        type: select
+        options:
+          - nothing
+          - warning
+          - error
+        default: "warning"
+        position: 8
 
 extensions:
   monitoring:
