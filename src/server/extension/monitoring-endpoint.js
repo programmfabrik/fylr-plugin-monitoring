@@ -324,6 +324,11 @@ process.stdin.on('end', () => {
         }
       }
     }
+    if (sessionData.system_rights['system.root']) {
+      allowMonitoringEndpoint = true;
+    }
+    console.error("#################");
+    console.error(sessionData.system_rights);
     if (allowMonitoringEndpoint == false) {
       throwError("Der User besitzt nicht das Systemrecht für die Nutzung des Monitoring-Endpoints", '');
     }
