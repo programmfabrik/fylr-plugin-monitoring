@@ -33,3 +33,8 @@ server.config.parameter.system.monitoring_endpoint.status__loglevel.label,Was tu
 server.config.option.system.monitoring_endpoint.status__loglevel.nothing,Nichts,Nothing
 server.config.option.system.monitoring_endpoint.status__loglevel.warning,Warnung,Warning
 server.config.option.system.monitoring_endpoint.status__loglevel.error,Fehler,Error
+
+server.config.parameter.system.monitoring_endpoint.status__disabled_plugins.label,Was tun: Deaktivierte Plugins,What do to: Deactivated plugins
+server.config.option.system.monitoring_endpoint.status__disabled_plugins.nothing,Nichts,Nothing
+server.config.option.system.monitoring_endpoint.status__disabled_plugins.warning,Warnung,Warning
+server.config.option.system.monitoring_endpoint.status__disabled_plugins.error,Fehler,Error

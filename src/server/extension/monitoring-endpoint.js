@@ -166,7 +166,7 @@ process.stdin.on('end', () => {
 
   function getPluginInfoFromAPI() {
     return new Promise((resolve, reject) => {
-      var url = 'http://fylr.localhost:8081/api/v1/plugin/manage?access_token=' + access_token
+      var url = 'http://fylr.localhost:8082/inspect/plugins';
       fetch(url, {
           headers: {
             'Accept': 'application/json'
@@ -176,12 +176,12 @@ process.stdin.on('end', () => {
           if (response.ok) {
             resolve(response.json());
           } else {
-            throwError("Fehler bei der Anfrage an /inspect/plugins/ ", '');
+            throwError("Fehler bei der Anfrage an /api/v1/plugin/ ", '');
           }
         })
         .catch(error => {
           console.log(error);
-          throwError("Fehler bei der Anfrage an /inspect/plugins/ ", '');
+          throwError("Fehler bei der Anfrage an /api/v1/plugin ", '');
         });
     });
   }
@@ -327,8 +327,6 @@ process.stdin.on('end', () => {
     if (sessionData.system_rights['system.root']) {
       allowMonitoringEndpoint = true;
     }
-    console.error("#################");
-    console.error(sessionData.system_rights);
     if (allowMonitoringEndpoint == false) {
       throwError("Der User besitzt nicht das Systemrecht für die Nutzung des Monitoring-Endpoints", '');
     }
@@ -372,16 +370,12 @@ process.stdin.on('end', () => {
       result.validation.objecttypeFilterValid = allPresent;
     }
 
-    // https://fylr-test.gbv.de/api/v1/plugin/manage
-    // https://fylr-test.gbv.de/inspect/plugins/
-
-    // disabled plugins?
+    // disabled plugins? via https://fylr-test.gbv.de/inspect/plugins/
     result.pluginsAllEnabled = true;
-    pluginInfo = infoData[5].plugins;
-
+    pluginInfo = infoData[5].Plugins;
     disabledPlugins = pluginInfo.map(plugin => {
-      if (plugin.enabled == false) {
-        return plugin.name;
+      if (plugin.Enabled == false) {
+        return plugin.Name;
       } else {
         return;
       }
