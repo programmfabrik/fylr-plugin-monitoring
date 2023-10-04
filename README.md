@@ -35,6 +35,7 @@ Github has an overview page to get a list of [all release](https://github.com/pr
   * What to do: Problems with validation (nothing, warning,error)
   * What to do: Purge is active (nothing, warning,error)
   * What to do: Loglevel is debug/trace (nothing, warning,error)
+  * What to do: One or more plugins are disabled (nothing, warning,error)
 
 * systemright
   * assign new systemright "monitoring_endpoint" to user and allow thereby usage of this custom endpoint
