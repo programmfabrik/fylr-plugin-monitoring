@@ -345,7 +345,7 @@ process.stdin.on('end', () => {
 
     if (validationEnabled == true) {
       // check if all objecttypes and tags, which are used in validation still exist!
-      const objecttypeList = Object.keys(infoData[0].Stats.indices_objects.ObjectRead);
+      const objecttypeList = infoData[2].tables.map(table => table.name);
       const tagList = infoData[4].Tags.flatMap(item => item.Tags.map(tag => tag.Id));
       // check tags
       let tagFilterFine = false;
@@ -363,9 +363,15 @@ process.stdin.on('end', () => {
       }
       result.validation.tagFilterValid = tagFilterFine;
       // check objecttypes
+      let problematicObjecttypes = [];
       const validation_selector = JSON.parse(sessionData.config.base.plugin['custom-vzg-validationhub'].config['VZG-Validationhub'].validation_selector);
       const objectTypes = validation_selector.data_table.map(item => item.objecttype);
       const allPresent = objectTypes.every(objectType => objecttypeList.includes(objectType));
+
+      if (!allPresent) {
+        problematicObjecttypes = objectTypes.filter(objectType => !objecttypeList.includes(objectType))
+        result.validation.problematicObjecttypes = problematicObjecttypes;
+      }
 
       result.validation.objecttypeFilterValid = allPresent;
     }
