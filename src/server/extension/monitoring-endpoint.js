@@ -130,15 +130,6 @@ process.stdin.on('end', () => {
   result.objectstore = objectstore;
 
   result.license = {}
-  //////////////////////////////////////////////////////////////
-  // license active
-  let licenseActive = false;
-  if (info.config && info.config.system && info.config.system.config && info.config.system.config.license && info.config.system.config.license.active) {
-    if (info.config.system.config.license.active = true) {
-      licenseActive = true;
-    }
-  }
-  result.license.licenseActive = licenseActive;
 
   //////////////////////////////////////////////////////////////
   // license created at
@@ -345,7 +336,7 @@ process.stdin.on('end', () => {
 
     if (validationEnabled == true) {
       // check if all objecttypes and tags, which are used in validation still exist!
-      const objecttypeList = infoData[2].tables.map(table => table.name);
+      const objecttypeList = Object.keys(infoData[0].Stats.indices_objects.ObjectRead);
       const tagList = infoData[4].Tags.flatMap(item => item.Tags.map(tag => tag.Id));
       // check tags
       let tagFilterFine = false;
@@ -363,15 +354,9 @@ process.stdin.on('end', () => {
       }
       result.validation.tagFilterValid = tagFilterFine;
       // check objecttypes
-      let problematicObjecttypes = [];
       const validation_selector = JSON.parse(sessionData.config.base.plugin['custom-vzg-validationhub'].config['VZG-Validationhub'].validation_selector);
       const objectTypes = validation_selector.data_table.map(item => item.objecttype);
       const allPresent = objectTypes.every(objectType => objecttypeList.includes(objectType));
-
-      if (!allPresent) {
-        problematicObjecttypes = objectTypes.filter(objectType => !objecttypeList.includes(objectType))
-        result.validation.problematicObjecttypes = problematicObjecttypes;
-      }
 
       result.validation.objecttypeFilterValid = allPresent;
     }
@@ -492,7 +477,7 @@ process.stdin.on('end', () => {
 
     // check license for status-influence
     if (statusEscalationLevels.license !== 'nothing') {
-      if (result.license.escalate === true || result.license.licenseActive !== true) {
+      if (result.license.escalate === true) {
         statusResults.license = statusEscalationLevels.license;
         statusMessages.push('License');
         increaseStatus(statusEscalationLevels.license);
