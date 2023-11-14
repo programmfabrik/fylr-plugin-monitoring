@@ -59,7 +59,11 @@ Result is as usual "application/json" and has the following structure
       "a*d*e*@*.*d"
     ]
   },
-  "janitorActive": false,
+  "janitor": {
+    "janitorActive": true,
+    "eventDeletionEnabled": true,
+    "escalate": false
+  },
   "logLevel": "debug",
   "purge": {
     "allowPurge": false,
@@ -67,7 +71,6 @@ Result is as usual "application/json" and has the following structure
   },
   "objectstore": "-",
   "license": {
-    "licenseActive": false,
     "licenseCreatedAt": "2023-06-15T12:45:13+02:00",
     "licenseValidTo": "2024-06-15T12:45:13+02:00",
     "escalate": false
