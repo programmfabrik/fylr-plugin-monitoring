@@ -83,13 +83,30 @@ process.stdin.on('end', () => {
 
   //////////////////////////////////////////////////////////////
   // Janitor-Status
+  let janitor = {};
   let janitorActive = false;
+  let janitorEscalate = false;
+  let eventDeletionEnabled = true;
   if (info.config && info.config.system && info.config.system.config && info.config.system.config.janitor && info.config.system.config.janitor.active) {
+    // janitor enabled?
     if (info.config.system.config.janitor.active = true) {
       janitorActive = true;
+    } else {
+      janitorEscalate = true;
+    }
+    // check if all events have a small deletion daylimit
+    for (const eventType in info.config.system.config.janitor.events) {
+      eventConfigVal = info.config.system.config.janitor.events[eventType];
+      if (eventConfigVal == null || eventConfigVal > 10 || eventConfigVal < 1) {
+        janitorEscalate = true;
+        eventDeletionEnabled = false;
+      }
     }
   }
-  result.janitorActive = janitorActive;
+  janitor.janitorActive = janitorActive;
+  janitor.eventDeletionEnabled = eventDeletionEnabled;
+  janitor.escalate = janitorEscalate;
+  result.janitor = janitor;
 
   //////////////////////////////////////////////////////////////
   // Loglevel
@@ -453,6 +470,7 @@ process.stdin.on('end', () => {
     statusEscalationLevels.purge = pluginBaseConfig.status__purge;
     statusEscalationLevels.loglevel = pluginBaseConfig.status__loglevel;
     statusEscalationLevels.pluginsallenabled = pluginBaseConfig.status__disabled_plugins;
+    statusEscalationLevels.janitoreventdeletionenabled = pluginBaseConfig.status__janitor_event_deletion;
 
     //result.statusEscalationLevels = statusEscalationLevels;
 
@@ -463,8 +481,18 @@ process.stdin.on('end', () => {
     statusResults.validation = 'nothing';
     statusResults.purge = 'nothing';
     statusResults.loglevel = 'nothing';
+    statusResults.janitor = 'nothing';
 
     let statusMessages = [];
+
+    // check janitor for status-influence
+    if (statusEscalationLevels.janitoreventdeletionenabled !== 'nothing') {
+      if (result.janitor.escalate !== false) {
+        statusResults.janitor = statusEscalationLevels.janitoreventdeletionenabled;
+        statusMessages.push('Janitor');
+        increaseStatus(statusEscalationLevels.janitoreventdeletionenabled);
+      }
+    }
 
     // check email for status-influence
     if (statusEscalationLevels.email !== 'nothing') {

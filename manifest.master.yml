@@ -73,6 +73,14 @@ base_config:
           - error
         default: "warning"
         position: 8
+      status__janitor_event_deletion:
+        type: select
+        options:
+          - nothing
+          - warning
+          - error
+        default: "warning"
+        position: 8
 
 extensions:
   monitoring:

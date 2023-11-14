@@ -38,3 +38,8 @@ server.config.parameter.system.monitoring_endpoint.status__disabled_plugins.labe
 server.config.option.system.monitoring_endpoint.status__disabled_plugins.nothing,Nichts,Nothing
 server.config.option.system.monitoring_endpoint.status__disabled_plugins.warning,Warnung,Warning
 server.config.option.system.monitoring_endpoint.status__disabled_plugins.error,Fehler,Error
+
+server.config.parameter.system.monitoring_endpoint.status__janitor_event_deletion.label,Was tun: Janitor löscht Events nicht,What do to: Janitor does not delete events
+server.config.option.system.monitoring_endpoint.status__janitor_event_deletion.nothing,Nichts,Nothing
+server.config.option.system.monitoring_endpoint.status__janitor_event_deletion.warning,Warnung,Warning
+server.config.option.system.monitoring_endpoint.status__janitor_event_deletion.error,Fehler,Error
