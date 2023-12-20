@@ -87,9 +87,9 @@ process.stdin.on('end', () => {
   let janitorActive = false;
   let janitorEscalate = false;
   let eventDeletionEnabled = true;
-  if (info.config && info.config.system && info.config.system.config && info.config.system.config.janitor && info.config.system.config.janitor.active) {
+  if (info.config && info.config.system && info.config.system.config && info.config.system.config.janitor) {
     // janitor enabled?
-    if (info.config.system.config.janitor.active = true) {
+    if (info.config.system.config.janitor.active == true) {
       janitorActive = true;
     } else {
       janitorEscalate = true;
