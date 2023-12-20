@@ -353,7 +353,9 @@ process.stdin.on('end', () => {
 
     if (validationEnabled == true) {
       // check if all objecttypes and tags, which are used in validation still exist!
-      const objecttypeList = Object.keys(infoData[0].Stats.indices_objects.ObjectRead);
+      //const objecttypeList = Object.keys(infoData[0].Stats.indices_objects.ObjectRead);
+      const objecttypeList = infoData[2].tables.map(item => item.name);
+
       const tagList = infoData[4].Tags.flatMap(item => item.Tags.map(tag => tag.Id));
       // check tags
       let tagFilterFine = false;
@@ -370,12 +372,17 @@ process.stdin.on('end', () => {
         }
       }
       result.validation.tagFilterValid = tagFilterFine;
+
       // check objecttypes
       const validation_selector = JSON.parse(sessionData.config.base.plugin['custom-vzg-validationhub'].config['VZG-Validationhub'].validation_selector);
       const objectTypes = validation_selector.data_table.map(item => item.objecttype);
       const allPresent = objectTypes.every(objectType => objecttypeList.includes(objectType));
+      const missingObjectTypes = objectTypes.filter(objectType => !objecttypeList.includes(objectType));
 
       result.validation.objecttypeFilterValid = allPresent;
+      if (missingObjectTypes.length > 0) {
+        result.validation.objecttypeFilterErrors = missingObjectTypes;
+      }
     }
 
     // disabled plugins? via https://fylr-test.gbv.de/inspect/plugins/
