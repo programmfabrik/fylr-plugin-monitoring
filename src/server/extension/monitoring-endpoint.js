@@ -432,6 +432,12 @@ process.stdin.on('end', () => {
     if (timeDifference < threeWeeksInMilliseconds) {
       escalateValidation = true; // Der Zeitstempel liegt weniger als drei Wochen in der Zukunft
     }
+
+    // of no license at all
+    if (result.license.licenseValidTo == '-' || result.license.licenseCreatedAt == '-') {
+      escalateValidation = true;
+    }
+
     result.license.escalate = escalateValidation;
 
     // shell the license-dates be echoed?
