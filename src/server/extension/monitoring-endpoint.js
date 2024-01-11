@@ -339,10 +339,21 @@ process.stdin.on('end', () => {
         }
         result.objectstore = objectstore;
 
+
+        //////////////////////////////////////////////////////////////
+        // license
         result.license = {}
 
         let licenseObject = infoData[7].BaseConfigList.find(obj => obj.Name === "license");
         licenseObject = licenseObject.Values.license.ValueJSON;
+
+        var licenseDomains = licenseObject.domains;
+        var externalURL = info.external_url;
+        externalURL = externalURL.replace('https://', '');
+        var externalURLicense = false;
+        if (!licenseDomains.includes(externalURL)) {
+            result.license.domainConflict = true;
+        }
 
         //////////////////////////////////////////////////////////////
         // license created at
@@ -455,6 +466,7 @@ process.stdin.on('end', () => {
 
         // parse info from settings (via session)
         result.name = sessionData.instance.name;
+        result.external_url = info.external_url;
         result.config_name = sessionData.instance.config_name;
         result.startup_time = sessionData.instance.startup_time;
         result.version = sessionData.instance.version;
@@ -486,10 +498,15 @@ process.stdin.on('end', () => {
             escalateValidation = true; // Der Zeitstempel liegt weniger als drei Wochen in der Zukunft
         }
 
-        // of no license at all
+        // if no license at all
         if (result.license.licenseValidTo == '-' || result.license.licenseCreatedAt == '-') {
             escalateValidation = true;
         }
+        // if domainconflict in license
+        if (result.license.domainConflict == true) {
+            escalateValidation = true;
+        }
+
 
         result.license.escalate = escalateValidation;
 
