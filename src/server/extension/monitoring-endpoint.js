@@ -348,6 +348,7 @@ process.stdin.on('end', () => {
         licenseObject = licenseObject.Values.license.ValueJSON;
 
         var licenseDomains = licenseObject.domains;
+        licenseDomains = array.map((s) => s.trim());
         var externalURL = info.external_url;
         externalURL = externalURL.replace('https://', '');
         externalURL = externalURL.trim();
