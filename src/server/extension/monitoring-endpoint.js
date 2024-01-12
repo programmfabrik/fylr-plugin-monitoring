@@ -350,7 +350,7 @@ process.stdin.on('end', () => {
         var licenseDomains = licenseObject.domains;
         var externalURL = info.external_url;
         externalURL = externalURL.replace('https://', '');
-        var externalURLicense = false;
+        externalURL = externalURL.trim();
         if (!licenseDomains.includes(externalURL)) {
             result.license.domainConflict = true;
         }
