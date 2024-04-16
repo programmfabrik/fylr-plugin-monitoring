@@ -215,6 +215,29 @@ process.stdin.on('end', () => {
                 });
         });
     }
+    
+   function getPoolStatsFromAPI() {
+        return new Promise((resolve, reject) => {
+            var url = 'http://fylr.localhost:8081/api/v1/pool/1/stats?include_subpools=1&access_token=' + access_token
+            console.error("POOLSTATS");
+            fetch(url, {
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        resolve(response.json());
+                    } else {
+                        throwError("Fehler bei der Anfrage an /pool/stats ", '');
+                    }
+                })
+                .catch(error => {
+                    console.log(error);
+                    throwError("Fehler bei der Anfrage an /pool/stats ", '');
+                });
+        });
+    }
 
     async function fetchData() {
         const infoData = await Promise.all([
@@ -225,7 +248,8 @@ process.stdin.on('end', () => {
                 getTagInfoFromAPI(),
                 getPluginInfoFromAPI(),
                 getConfigFromAPI(),
-                getConfigFromInspectAPI()
+                getConfigFromInspectAPI(),
+                getPoolStatsFromAPI()
         ]);
 
         let configinfo = infoData[6];
@@ -351,6 +375,7 @@ process.stdin.on('end', () => {
         licenseDomains = licenseDomains.map((s) => s.trim());
         var externalURL = info.external_url;
         externalURL = externalURL.replace('https://', '');
+        externalURL = externalURL.replace('https//', '');
         externalURL = externalURL.trim();
         if (!licenseDomains.includes(externalURL)) {
             result.license.domainConflict = true;
@@ -421,7 +446,10 @@ process.stdin.on('end', () => {
             // check if all objecttypes and tags, which are used in validation still exist!
             const objecttypeList = infoData[2].tables.map(item => item.name);
 
+                        console.error(" infoData[4]");
+            console.error( infoData[4]);
             const tagList = infoData[4].Tags.flatMap(item => item.Tags.map(tag => tag.Id));
+
             // check tags
             let tagFilterFine = false;
             const tagfilter_select = sessionData.config.base.plugin['custom-vzg-validationhub'].config['VZG-Validationhub'].tagfilter_select;
@@ -464,6 +492,9 @@ process.stdin.on('end', () => {
             result.pluginsAllEnabled = false;
             result.pluginsDisabled = disabledPlugins;
         }
+            
+        // poolstats
+        console.error(infoData[8]);
 
         // parse info from settings (via session)
         result.name = sessionData.instance.name;
