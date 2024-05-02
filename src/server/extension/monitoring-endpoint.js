@@ -206,20 +206,19 @@ process.stdin.on('end', () => {
                     if (response.ok) {
                         resolve(response.json());
                     } else {
-                        throwError("Fehler bei der Anfrage an /xxx ", '');
+                        throwError("Fehler bei der Anfrage an /inspect/config ", '');
                     }
                 })
                 .catch(error => {
                     console.log(error);
-                    throwError("Fehler bei der Anfrage an /xxx ", '');
+                    throwError("Fehler bei der Anfrage an /inspect/config ", '');
                 });
         });
     }
     
    function getPoolStatsFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8081/api/v1/pool/1/stats?include_subpools=1&access_token=' + access_token
-            console.error("POOLSTATS");
+            var url = 'http://fylr.localhost:8082/inspect/pools/1/'
             fetch(url, {
                     headers: {
                         'Accept': 'application/json'
@@ -229,12 +228,12 @@ process.stdin.on('end', () => {
                     if (response.ok) {
                         resolve(response.json());
                     } else {
-                        throwError("Fehler bei der Anfrage an /pool/stats ", '');
+                        throwError("Fehler bei der Anfrage an /pools/stats ", '');
                     }
                 })
                 .catch(error => {
                     console.log(error);
-                    throwError("Fehler bei der Anfrage an /pool/stats ", '');
+                    throwError("Fehler bei der Anfrage an /pools/stats ", '');
                 });
         });
     }
@@ -446,8 +445,6 @@ process.stdin.on('end', () => {
             // check if all objecttypes and tags, which are used in validation still exist!
             const objecttypeList = infoData[2].tables.map(item => item.name);
 
-                        console.error(" infoData[4]");
-            console.error( infoData[4]);
             const tagList = infoData[4].Tags.flatMap(item => item.Tags.map(tag => tag.Id));
 
             // check tags
@@ -494,7 +491,17 @@ process.stdin.on('end', () => {
         }
             
         // poolstats
-        console.error(infoData[8]);
+        if (infoData[8]) {
+            if (infoData[8].PoolStatsSubpools) {
+                result.file_stats = {};
+                result.file_stats.count = infoData[8].PoolStatsSubpools.files.count;
+                var sizeString = (infoData[8].PoolStatsSubpools.files.size / (1024 ** 3)).toFixed(2) + ' GB';
+                if(sizeString == '0.00 GB') {
+                    sizeString = (infoData[8].PoolStatsSubpools.files.size / (1024 ** 2)).toFixed(2) + ' MB';
+                } 
+                result.file_stats.size = sizeString;
+            }
+        }
 
         // parse info from settings (via session)
         result.name = sessionData.instance.name;
