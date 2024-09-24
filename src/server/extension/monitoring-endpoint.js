@@ -401,9 +401,13 @@ process.stdin.on('end', () => {
 
         //////////////////////////////////////////////////////////////
         // objectstore
-        let objectstore = '-';
-        if (configinfo?.config?.system?.objectstore?.instance) {
-            objectstore = configinfo.config.system.objectstore.instance;
+        let objectstore = false;
+        if (configinfo?.system?.config?.objectstore?.uid) {
+            objectstore = {};
+            objectstore.uid = configinfo.system.config.objectstore.uid;
+            if (configinfo?.system?.config?.objectstore?.instance) {
+                objectstore.instance = configinfo.system.config.objectstore.instance;
+            }
         }
         result.objectstore = objectstore;
 
