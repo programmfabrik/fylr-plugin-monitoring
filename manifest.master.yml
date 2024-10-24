@@ -98,6 +98,23 @@ extensions:
             - type: "value"
               value: "%info.json%"
 
+  monitoring_with_diskusage:
+    exec:
+      service: "node"
+      commands:
+        - prog: "node"
+          stdin:
+            type: "body"
+          stdout:
+            type: "body"
+          args:
+            - type: "value"
+              value: "%_exec.pluginDir%/server/extension/monitoring-endpoint.js"
+            - type: "value"
+              value: "%info.json%"
+            - type: "value"
+              value: "diskusage:true"
+
 system_rights:
   - name: monitoring_endpoint
     comment: Adding a monitoring-endpoint to API

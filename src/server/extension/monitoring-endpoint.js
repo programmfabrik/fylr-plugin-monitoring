@@ -8,6 +8,14 @@ if (process.argv.length >= 3) {
     info = JSON.parse(process.argv[2])
 }
 
+let withDiskUsage = false;
+if (process.argv[3]) {
+    test = process.argv[3];
+    if(test == 'diskusage:true') {
+        withDiskUsage = true;
+    }
+}
+
 // throws api-error to frontend
 function throwError(error, description) {
     console.log(JSON.stringify({
@@ -217,6 +225,9 @@ process.stdin.on('end', () => {
     }
     
    function getPoolStatsFromAPI() {
+        if(!withDiskUsage) {
+            return false;
+        }
         return new Promise((resolve, reject) => {
             var url = 'http://fylr.localhost:8082/inspect/pools/1/'
             fetch(url, {
@@ -239,6 +250,9 @@ process.stdin.on('end', () => {
     }
     
     function getObjecttypeStatsFromAPI() {
+        if(!withDiskUsage) {
+            return false;
+        }
         return new Promise((resolve, reject) => {
             fetch('http://fylr.localhost:8081/api/v1/objecttype?access_token=' + access_token, {
                 headers: {
@@ -540,48 +554,50 @@ process.stdin.on('end', () => {
         }
           
         // filestats
-        result.file_stats = {};
-        result.file_stats.count = 0;
-        result.file_stats.size = 0;
-
-        // from pool
-        if (infoData[8]) {
-            if (infoData[8].PoolStatsSubpools) {
-                result.file_stats.count = infoData[8].PoolStatsSubpools.files.count;
-                result.file_stats.size = infoData[8].PoolStatsSubpools.files.size;
+        if(withDiskUsage) {
+            result.file_stats = {};
+            result.file_stats.count = 0;
+            result.file_stats.size = 0;
+        
+            // from pool
+            if (infoData[8]) {
+                if (infoData[8].PoolStatsSubpools) {
+                    result.file_stats.count = infoData[8].PoolStatsSubpools.files.count;
+                    result.file_stats.size = infoData[8].PoolStatsSubpools.files.size;
+                }
             }
-        }
 
-        // from objecttype
-        if(infoData[9].length > 0) {
-            let otCount = 0;
-            let otSize = 0;
-            for(let i=0;i<infoData[9].length;i++){
-                if(infoData[9][i].OtStats) {
-                    if(infoData[9][i].OtStats.files) {
-                        if(infoData[9][i].OtStats.files.size) {
-                            var size = infoData[9][i].OtStats.files.size;
-                            var count = infoData[9][i].OtStats.files.count;
-                            if(count) {
-                                otCount += count;
-                            }
-                            if(size != 0) {
-                                otSize = otSize + size;
+            // from objecttype
+            if(infoData[9].length > 0) {
+                let otCount = 0;
+                let otSize = 0;
+                for(let i=0;i<infoData[9].length;i++){
+                    if(infoData[9][i].OtStats) {
+                        if(infoData[9][i].OtStats.files) {
+                            if(infoData[9][i].OtStats.files.size) {
+                                var size = infoData[9][i].OtStats.files.size;
+                                var count = infoData[9][i].OtStats.files.count;
+                                if(count) {
+                                    otCount += count;
+                                }
+                                if(size != 0) {
+                                    otSize = otSize + size;
+                                }
                             }
                         }
                     }
                 }
+                result.file_stats.count += otCount;
+                result.file_stats.size += otSize;
             }
-            result.file_stats.count += otCount;
-            result.file_stats.size += otSize;
-        }
 
-        if(result.file_stats.count > 0) {
-            var sizeString = (result.file_stats.size / (1024 ** 3)).toFixed(2) + ' GB';
-            if(sizeString == '0.00 GB') {
-                sizeString = (result.file_stats.size / (1024 ** 2)).toFixed(2) + ' MB';
-            } 
-            result.file_stats.size = sizeString;
+            if(result.file_stats.count > 0) {
+                var sizeString = (result.file_stats.size / (1024 ** 3)).toFixed(2) + ' GB';
+                if(sizeString == '0.00 GB') {
+                    sizeString = (result.file_stats.size / (1024 ** 2)).toFixed(2) + ' MB';
+                } 
+                result.file_stats.size = sizeString;
+            }
         }
 
 
