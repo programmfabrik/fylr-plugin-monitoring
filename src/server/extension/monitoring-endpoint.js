@@ -249,7 +249,7 @@ process.stdin.on('end', () => {
         });
     }
     
-    function getObjecttypeStatsFromAPI() {
+    function getDiskUsageFromAPI() {
         if(!withDiskUsage) {
             return false;
         }
@@ -279,7 +279,7 @@ process.stdin.on('end', () => {
                         if (response.ok) {
                             return response.json();
                         } else {
-                            throw new Error(`Fehler bei der Anfrage an /inspect/objecttypes/${objecttype}/`);
+                            throw new Error(`Fehler bei der Filesize-Statistik-Anfrage an /inspect/objecttypes/${objecttype}/`);
                         }
                     });
                 });
@@ -290,8 +290,29 @@ process.stdin.on('end', () => {
             })
             .catch(error => {
                 console.log(error);
-                throwError("Fehler bei der Anfrage an /inspect/objecttypes/ oder /objecttype/stats ", "");
+                throwError("Fehler bei der Filesize-Statistik-Anfrage an /inspect/objecttypes/ oder /objecttype/stats ", "");
             });
+        });
+    }
+
+    function getObjectTypeStatsFromAPI() {
+        return new Promise((resolve, reject) => {
+            var url = 'http://fylr.localhost:8082/inspect/objects/?filter=&versions=latest&index=all&fileCount='
+            fetch(url, {
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        resolve(response.json());
+                    } else {
+                        throwError("Fehler bei der Anfrage an 1/objects/ :" + response, '');
+                    }
+                })
+                .catch(error => {
+                    throwError("Fehler bei der Anfrage an 2/objects/ :" + error, '');
+                });
         });
     }
 
@@ -307,7 +328,8 @@ process.stdin.on('end', () => {
                 getConfigFromAPI(),
                 getConfigFromInspectAPI(),
                 getPoolStatsFromAPI(),
-                getObjecttypeStatsFromAPI()
+                getDiskUsageFromAPI(),
+                getObjectTypeStatsFromAPI()
         ]);
 
         let configinfo = infoData[6];
@@ -552,6 +574,20 @@ process.stdin.on('end', () => {
             result.pluginsAllEnabled = false;
             result.pluginsDisabled = disabledPlugins;
         }
+
+        // objecttypes stat
+        result.statistics = {};
+        result.statistics.objecttypes = {};
+        if(infoData[10]) {
+            if(infoData[10]['IndexedByTableNameRead']) {
+                Object.keys(infoData[10]['IndexedByTableNameRead']).forEach(function(key) {
+                    if(infoData[10]['IndexedByTableNameRead'][key].Count) {
+                        result.statistics.objecttypes[key] = infoData[10]['IndexedByTableNameRead'][key].Count;
+                    }
+                });
+            }
+        }
+
           
         // filestats
         if(withDiskUsage) {
@@ -567,7 +603,7 @@ process.stdin.on('end', () => {
                 }
             }
 
-            // from objecttype
+            // from objecttype            
             if(infoData[9].length > 0) {
                 let otCount = 0;
                 let otSize = 0;
@@ -658,11 +694,9 @@ process.stdin.on('end', () => {
         }
 
         // parse statistics
-        result.statistics = {};
         result.statistics.user = infoData[0].Stats.indices_objects.BaseRead.user;
         result.statistics.group = infoData[0].Stats.indices_objects.BaseRead.group;
         result.statistics.pool = infoData[0].Stats.indices_objects.BaseRead.pool;
-        result.statistics.objecttypes = infoData[0].Stats.indices_objects.ObjectRead;
 
         //////////////////////////////////////////////////////////////
         // summary-status (ok, warning, error)
