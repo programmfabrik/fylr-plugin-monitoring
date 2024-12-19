@@ -1,6 +1,7 @@
 // GET /api/v1/plugin/extension/monitoring-endpoint/monitoring
 
 const fs = require('fs');
+const path = require('path');
 const https = require('https');
 
 let info = {}
@@ -316,6 +317,52 @@ process.stdin.on('end', () => {
         });
     }
 
+    function checkSqlBackups() {
+        return new Promise((resolve, reject) => {
+        // check sqldumps
+        const sqlBackupDir = '/fylr/files/sqlbackups/';
+
+            fs.readdir(sqlBackupDir, (err, files) => {
+                if (err) {
+                    return resolve(false);
+                }
+                else {
+                    for (const file of files) {    
+                        // get yesterdays-date
+                        let yesterday = new Date();
+                        yesterday.setDate(yesterday.getDate() - 1);
+
+                        const year = yesterday.getFullYear();
+                        const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+                        const day = String(yesterday.getDate()).padStart(2, '0');
+
+                        yesterday = year + '-' + month + '-' + day;
+
+                        const backupFile = files.find(file => file.endsWith('.pgdump') && file.includes(yesterday));
+
+                        if (backupFile) {
+                            // Passende Log-Datei suchen
+                            const logFile = `${backupFile}.log`;
+                            if (files.includes(logFile)) {
+                                // Log-Datei lesen und prüfen
+                                const logPath = path.join(sqlBackupDir, logFile);
+                                const logContent = fs.readFileSync(logPath, 'utf8');
+                                if (logContent.includes('Backup completed successfully')) {
+                                    return resolve(true);
+                                } else {
+                                    return resolve(false);
+                                }
+                            } else {
+                                return resolve(false);
+                            }
+                        } else {
+                            return resolve(false);
+                        }
+                    };
+                }
+            });
+        });
+    }
 
     async function fetchData() {
         const infoData = await Promise.all([
@@ -329,11 +376,16 @@ process.stdin.on('end', () => {
                 getConfigFromInspectAPI(),
                 getPoolStatsFromAPI(),
                 getDiskUsageFromAPI(),
-                getObjectTypeStatsFromAPI()
+                getObjectTypeStatsFromAPI(),
+                checkSqlBackups()
         ]);
 
         let configinfo = infoData[6];
-    
+
+        //////////////////////////////////////////////////////////////
+        // check mysql-backups, a successfull backup from yesterday is wanted
+        result.sqlbackups = infoData[11];
+
         //////////////////////////////////////////////////////////////
         // email-configs
         result.email = {};
