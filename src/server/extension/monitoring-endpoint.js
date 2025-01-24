@@ -364,6 +364,48 @@ process.stdin.on('end', () => {
         });
     }
 
+    function getOpenSearchWatermarkConfig() {
+        return new Promise((resolve, reject) => {
+            var url = 'http://opensearch:9200/_cluster/settings?include_defaults=true&filter_path=defaults.cluster.routing.allocation.disk.watermark';
+            fetch(url, {
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        resolve(response.json());
+                    } else {
+                        throwError("Fehler bei der Anfrage an " + url + " :" + response, '');
+                    }
+                })
+                .catch(error => {
+                    throwError("Fehler bei der Anfrage an " + url + " :" + error, '');
+                });
+        });
+    }
+
+    function getOpenSearchStats() {
+        return new Promise((resolve, reject) => {
+            var url = 'http://opensearch:9200/_cluster/stats?pretty&filter_path=nodes.fs'
+            fetch(url, {
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        resolve(response.json());
+                    } else {
+                        throwError("Fehler bei der Anfrage an " + url + " :" + response, '');
+                    }
+                })
+                .catch(error => {
+                    throwError("Fehler bei der Anfrage an" + url + " :" + error, '');
+                });
+        });
+    }
+
     async function fetchData() {
         const infoData = await Promise.all([
                 getStatsInfoFromAPI(),
@@ -377,7 +419,9 @@ process.stdin.on('end', () => {
                 getPoolStatsFromAPI(),
                 getDiskUsageFromAPI(),
                 getObjectTypeStatsFromAPI(),
-                checkSqlBackups()
+                checkSqlBackups(),
+                getOpenSearchWatermarkConfig(),
+                getOpenSearchStats()
         ]);
 
         let configinfo = infoData[6];
@@ -856,7 +900,32 @@ process.stdin.on('end', () => {
             }
         }
 
-        //result.statusResults = statusResults;
+        // check opensearch diskstatus
+        const openSearchWatermarkConfig = infoData[12].defaults.cluster.routing.allocation.disk.watermark;
+        const openSearchDiskStat = infoData[13].nodes.fs;
+
+        // used disk in %
+        const usedDiskInPercent = Math.ceil(100 - (openSearchDiskStat.available_in_bytes / openSearchDiskStat.total_in_bytes * 100))
+
+        let openSearchWatermarkStatus = 'low';
+
+        const highStatus = openSearchWatermarkConfig.high.replace('%', '') * 1;
+        const floodStatus = openSearchWatermarkConfig.flood_stage.replace('%', '') * 1;
+
+        if(usedDiskInPercent >= highStatus) {
+            openSearchWatermarkStatus = 'high';
+            statusMessages.push('openSearchWatermarkStatus: high');
+        }
+        if(usedDiskInPercent >= floodStatus) {
+            openSearchWatermarkStatus = 'flood_stage';
+            statusMessages.push('openSearchWatermarkStatus: flood_stage');
+        }
+        
+        result.opensearch = {};
+        result.opensearch.status = {};
+        result.opensearch.status.fs = {};
+        result.opensearch.status.fs.status = openSearchWatermarkStatus;
+        result.opensearch.status.fs.percent = usedDiskInPercent;
 
         if (statusMessages.length > 0) {
             result.statusmessage = 'Problems: ' + statusMessages.join(', ');
