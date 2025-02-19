@@ -424,6 +424,8 @@ process.stdin.on('end', () => {
                 getOpenSearchStats()
         ]);
 
+        let statusMessages = [];
+
         let configinfo = infoData[6];
 
         //////////////////////////////////////////////////////////////
@@ -833,7 +835,11 @@ process.stdin.on('end', () => {
         statusResults.loglevel = 'nothing';
         statusResults.janitor = 'nothing';
 
-        let statusMessages = [];
+        // check backups
+        if(result.sqlbackups !== true) {
+            increaseStatus('warning');
+            statusMessages.push('last Backup not found');
+        }
 
         // check janitor for status-influence
         if (statusEscalationLevels.janitoreventdeletionenabled !== 'nothing') {
