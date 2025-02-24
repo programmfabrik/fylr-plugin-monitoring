@@ -359,6 +359,7 @@ process.stdin.on('end', () => {
                             return resolve(false);
                         }
                     };
+                    return resolve(false);
                 }
             });
         });
