@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const os = require('os');
 
 let info = {}
 if (process.argv.length >= 3) {
@@ -32,6 +33,13 @@ function throwError(error, description) {
     process.exit(0);
 }
 
+function roundDecimal(number, decimalPlaces) {
+    const decimalMultiplier = Math.pow(10, decimalPlaces)
+
+    // we add Number.EPSILON (the smallest possible floating point number) to ensure numbers like 1.005 round correctly.
+    return Math.round((number + Number.EPSILON) * decimalMultiplier) / decimalMultiplier
+}
+
 process.stdin.on('data', d => {
     try {
         input += d.toString();
@@ -53,10 +61,10 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             var url = 'http://fylr.localhost:8082/inspect/plugins';
             fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                })
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
@@ -75,10 +83,10 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             var url = 'http://fylr.localhost:8082/inspect/system/status/'
             fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                })
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
@@ -97,10 +105,10 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             var url = 'http://fylr.localhost:8082/inspect/tags/'
             fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                })
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
@@ -119,10 +127,10 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             var url = 'http://fylr.localhost:8081/api/v1/user/session?access_token=' + access_token
             fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                })
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
@@ -141,10 +149,10 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             var url = 'http://fylr.localhost:8081/api/v1/schema/user/CURRENT?access_token=' + access_token
             fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                })
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
@@ -163,10 +171,10 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             var url = 'http://fylr.localhost:8081/api/v1/schema/user/HEAD?access_token=' + access_token
             fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                })
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
@@ -185,10 +193,10 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             var url = 'http://fylr.localhost:8081/api/v1/config?access_token=' + access_token
             fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                })
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
@@ -207,10 +215,10 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             var url = 'http://fylr.localhost:8082/inspect/config'
             fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                })
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
@@ -224,18 +232,18 @@ process.stdin.on('end', () => {
                 });
         });
     }
-    
-   function getPoolStatsFromAPI() {
+
+    function getPoolStatsFromAPI() {
         if(!withDiskUsage) {
             return false;
         }
         return new Promise((resolve, reject) => {
             var url = 'http://fylr.localhost:8082/inspect/pools/1/'
             fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                })
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
@@ -249,7 +257,7 @@ process.stdin.on('end', () => {
                 });
         });
     }
-    
+
     function getDiskUsageFromAPI() {
         if(!withDiskUsage) {
             return false;
@@ -260,39 +268,39 @@ process.stdin.on('end', () => {
                     'Accept': 'application/json'
                 },
             })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else {
-                    throw new Error("Fehler bei der Anfrage an /inspect/objecttypes/");
-                }
-            })
-            .then(objecttypes => {
-                objecttypes = objecttypes.map((objecttype) => objecttype.objecttype.name);
-                let statsPromises = objecttypes.map(objecttype => {
-                    let url = `http://fylr.localhost:8082/inspect/objecttypes/${objecttype}/`;
-                    return fetch(url, {
-                        headers: {
-                            'Accept': 'application/json'
-                        },
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            return response.json();
-                        } else {
-                            throw new Error(`Fehler bei der Filesize-Statistik-Anfrage an /inspect/objecttypes/${objecttype}/`);
-                        }
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error("Fehler bei der Anfrage an /inspect/objecttypes/");
+                    }
+                })
+                .then(objecttypes => {
+                    objecttypes = objecttypes.map((objecttype) => objecttype.objecttype.name);
+                    let statsPromises = objecttypes.map(objecttype => {
+                        let url = `http://fylr.localhost:8082/inspect/objecttypes/${objecttype}/`;
+                        return fetch(url, {
+                            headers: {
+                                'Accept': 'application/json'
+                            },
+                        })
+                            .then(response => {
+                                if (response.ok) {
+                                    return response.json();
+                                } else {
+                                    throw new Error(`Fehler bei der Filesize-Statistik-Anfrage an /inspect/objecttypes/${objecttype}/`);
+                                }
+                            });
                     });
+                    return Promise.all(statsPromises);
+                })
+                .then(allStats => {
+                    resolve(allStats);
+                })
+                .catch(error => {
+                    console.log(error);
+                    throwError("Fehler bei der Filesize-Statistik-Anfrage an /inspect/objecttypes/ oder /objecttype/stats ", "");
                 });
-                return Promise.all(statsPromises);
-            })
-            .then(allStats => {
-                resolve(allStats);
-            })
-            .catch(error => {
-                console.log(error);
-                throwError("Fehler bei der Filesize-Statistik-Anfrage an /inspect/objecttypes/ oder /objecttype/stats ", "");
-            });
         });
     }
 
@@ -300,10 +308,10 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             var url = 'http://fylr.localhost:8082/inspect/objects/?filter=&versions=latest&index=all&fileCount='
             fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                })
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
@@ -319,15 +327,15 @@ process.stdin.on('end', () => {
 
     function checkSqlBackups() {
         return new Promise((resolve, reject) => {
-        // check sqldumps
-        const sqlBackupDir = '/fylr/files/sqlbackups/';
+            // check sqldumps
+            const sqlBackupDir = '/fylr/files/sqlbackups/';
 
             fs.readdir(sqlBackupDir, (err, files) => {
                 if (err) {
                     return resolve(false);
                 }
                 else {
-                    for (const file of files) {    
+                    for (const file of files) {
                         // get yesterdays-date
                         let yesterday = new Date();
                         yesterday.setDate(yesterday.getDate() - 1);
@@ -369,10 +377,10 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             var url = 'http://opensearch:9200/_cluster/settings?include_defaults=true&filter_path=defaults.cluster.routing.allocation.disk.watermark';
             fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                })
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
@@ -390,10 +398,10 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             var url = 'http://opensearch:9200/_cluster/stats?pretty&filter_path=nodes.fs'
             fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                })
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
@@ -407,27 +415,38 @@ process.stdin.on('end', () => {
         });
     }
 
+    function getHardwareStats() {
+        const ram = roundDecimal(os.totalmem() / Math.pow(1024, 3), 2) + 'GB'
+        const cpu = os.cpus().length
+
+        return { ram, cpu, }
+    }
+
     async function fetchData() {
         const infoData = await Promise.all([
-                getStatsInfoFromAPI(),
-                getSessionInfoFromAPI(),
-                getCURRENTFromAPI(),
-                getHEADFromAPI(),
-                getTagInfoFromAPI(),
-                getPluginInfoFromAPI(),
-                getConfigFromAPI(),
-                getConfigFromInspectAPI(),
-                getPoolStatsFromAPI(),
-                getDiskUsageFromAPI(),
-                getObjectTypeStatsFromAPI(),
-                checkSqlBackups(),
-                getOpenSearchWatermarkConfig(),
-                getOpenSearchStats()
+            getStatsInfoFromAPI(),
+            getSessionInfoFromAPI(),
+            getCURRENTFromAPI(),
+            getHEADFromAPI(),
+            getTagInfoFromAPI(),
+            getPluginInfoFromAPI(),
+            getConfigFromAPI(),
+            getConfigFromInspectAPI(),
+            getPoolStatsFromAPI(),
+            getDiskUsageFromAPI(),
+            getObjectTypeStatsFromAPI(),
+            checkSqlBackups(),
+            getOpenSearchWatermarkConfig(),
+            getOpenSearchStats()
         ]);
 
         let statusMessages = [];
 
         let configinfo = infoData[6];
+
+        //////////////////////////////////////////////////////////////
+        // get ram, ram_quota, number of cpus, and cpu_quota
+        result.assigned_hardware = getHardwareStats();
 
         //////////////////////////////////////////////////////////////
         // check mysql-backups, a successfull backup from yesterday is wanted
@@ -687,13 +706,13 @@ process.stdin.on('end', () => {
             }
         }
 
-          
+
         // filestats
         if(withDiskUsage) {
             result.file_stats = {};
             result.file_stats.count = 0;
             result.file_stats.size = 0;
-        
+
             // from pool
             if (infoData[8]) {
                 if (infoData[8].PoolStatsSubpools) {
@@ -730,7 +749,7 @@ process.stdin.on('end', () => {
                 var sizeString = (result.file_stats.size / (1024 ** 3)).toFixed(2) + ' GB';
                 if(sizeString == '0.00 GB') {
                     sizeString = (result.file_stats.size / (1024 ** 2)).toFixed(2) + ' MB';
-                } 
+                }
                 result.file_stats.size = sizeString;
             }
         }
@@ -927,7 +946,7 @@ process.stdin.on('end', () => {
             openSearchWatermarkStatus = 'flood_stage';
             statusMessages.push('openSearchWatermarkStatus: flood_stage');
         }
-        
+
         result.opensearch = {};
         result.opensearch.status = {};
         result.opensearch.status.fs = {};
