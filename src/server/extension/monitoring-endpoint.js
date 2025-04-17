@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const os = require('os');
+const pg = require('pg');
 
 let info = {}
 if (process.argv.length >= 3) {
@@ -422,6 +423,25 @@ process.stdin.on('end', () => {
         return { ram, cpu, }
     }
 
+    function getPostgresVersion(dsn) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const client = new pg.Client({
+                    connectionString: dsn
+                })
+                await client.connect()
+
+                const result = await client.query('SELECT VERSION()')
+
+                client.end()
+
+                resolve(result.rows[0]?.version);
+            } catch (error) {
+                throwError("Fehler bei der Anfrage an PostgreSQL:" + error, '');
+            }
+        })
+    }
+
     async function fetchData() {
         const infoData = await Promise.all([
             getStatsInfoFromAPI(),
@@ -443,6 +463,12 @@ process.stdin.on('end', () => {
         let statusMessages = [];
 
         let configinfo = infoData[6];
+        
+        //////////////////////////////////////////////////////////////
+        // get postgres version, cannot be part of Promise.all(), because we need the DSN.
+        // DSN is in the response from getConfigFromInspectAPI()
+        const dsn = infoData[7].Config.Fylr.DB.DSN
+        result.postgres_version = await getPostgresVersion(dsn);
 
         //////////////////////////////////////////////////////////////
         // get ram, ram_quota, number of cpus, and cpu_quota
