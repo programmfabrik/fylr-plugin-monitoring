@@ -423,6 +423,34 @@ process.stdin.on('end', () => {
         return { ram, cpu, }
     }
 
+    function getHostOS() {
+        try {
+            const content = fs.readFileSync('/fylr/files/host-os-release', 'utf8');
+            const lines = content.split('\n');
+            const osInfo = {};
+
+            lines.forEach(line => {
+                if (line.includes('=')) {
+                    let [key, value] = line.split('=');
+                    // Remove any surrounding quotes
+                    value = value.replace(/^"(.*)"$/, '$1');
+                    osInfo[key] = value;
+                }
+            });
+
+            return {
+                id: osInfo['ID'],
+                versionId: osInfo['VERSION_ID'],
+                prettyName: osInfo['PRETTY_NAME'],
+                codename: osInfo['VERSION_CODENAME'],
+            };
+
+        } catch (error) {
+            throwError("Fehler beim Auslesen des Host OS:" + error, '');
+            return null;
+          }
+    }
+
     function getPostgresVersion(dsn) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -473,6 +501,10 @@ process.stdin.on('end', () => {
         //////////////////////////////////////////////////////////////
         // get ram, ram_quota, number of cpus, and cpu_quota
         result.assigned_hardware = getHardwareStats();
+
+        //////////////////////////////////////////////////////////////
+        // get ram, ram_quota, number of cpus, and cpu_quota
+        // result.host_data = getHostOS();
 
         //////////////////////////////////////////////////////////////
         // check mysql-backups, a successfull backup from yesterday is wanted
