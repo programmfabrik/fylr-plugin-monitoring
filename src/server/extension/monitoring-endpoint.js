@@ -504,7 +504,7 @@ process.stdin.on('end', () => {
 
         //////////////////////////////////////////////////////////////
         // get ram, ram_quota, number of cpus, and cpu_quota
-        // result.host_data = getHostOS();
+        result.host_data = getHostOS();
 
         //////////////////////////////////////////////////////////////
         // check mysql-backups, a successfull backup from yesterday is wanted
