@@ -14,7 +14,7 @@ if (process.argv.length >= 3) {
 let withDiskUsage = false;
 if (process.argv[3]) {
     test = process.argv[3];
-    if(test == 'diskusage:true') {
+    if (test == 'diskusage:true') {
         withDiskUsage = true;
     }
 }
@@ -235,7 +235,7 @@ process.stdin.on('end', () => {
     }
 
     function getPoolStatsFromAPI() {
-        if(!withDiskUsage) {
+        if (!withDiskUsage) {
             return false;
         }
         return new Promise((resolve, reject) => {
@@ -260,7 +260,7 @@ process.stdin.on('end', () => {
     }
 
     function getDiskUsageFromAPI() {
-        if(!withDiskUsage) {
+        if (!withDiskUsage) {
             return false;
         }
         return new Promise((resolve, reject) => {
@@ -443,12 +443,19 @@ process.stdin.on('end', () => {
                 versionId: osInfo['VERSION_ID'],
                 prettyName: osInfo['PRETTY_NAME'],
                 codename: osInfo['VERSION_CODENAME'],
+                error: null
             };
 
         } catch (error) {
-            throwError("Fehler beim Auslesen des Host OS:" + error, '');
-            return null;
-          }
+            
+            return {
+                id: null,
+                versionId: null,
+                prettyName: null,
+                codename: null,
+                error: error
+            };
+        }
     }
 
     function getPostgresVersion(dsn) {
@@ -491,7 +498,7 @@ process.stdin.on('end', () => {
         let statusMessages = [];
 
         let configinfo = infoData[6];
-        
+
         //////////////////////////////////////////////////////////////
         // get postgres version, cannot be part of Promise.all(), because we need the DSN.
         // DSN is in the response from getConfigFromInspectAPI()
@@ -754,10 +761,10 @@ process.stdin.on('end', () => {
         // objecttypes stat
         result.statistics = {};
         result.statistics.objecttypes = {};
-        if(infoData[10]) {
-            if(infoData[10]['IndexedByTableNameRead']) {
-                Object.keys(infoData[10]['IndexedByTableNameRead']).forEach(function(key) {
-                    if(infoData[10]['IndexedByTableNameRead'][key].Count) {
+        if (infoData[10]) {
+            if (infoData[10]['IndexedByTableNameRead']) {
+                Object.keys(infoData[10]['IndexedByTableNameRead']).forEach(function (key) {
+                    if (infoData[10]['IndexedByTableNameRead'][key].Count) {
                         result.statistics.objecttypes[key] = infoData[10]['IndexedByTableNameRead'][key].Count;
                     }
                 });
@@ -766,7 +773,7 @@ process.stdin.on('end', () => {
 
 
         // filestats
-        if(withDiskUsage) {
+        if (withDiskUsage) {
             result.file_stats = {};
             result.file_stats.count = 0;
             result.file_stats.size = 0;
@@ -780,19 +787,19 @@ process.stdin.on('end', () => {
             }
 
             // from objecttype            
-            if(infoData[9].length > 0) {
+            if (infoData[9].length > 0) {
                 let otCount = 0;
                 let otSize = 0;
-                for(let i=0;i<infoData[9].length;i++){
-                    if(infoData[9][i].OtStats) {
-                        if(infoData[9][i].OtStats.files) {
-                            if(infoData[9][i].OtStats.files.size) {
+                for (let i = 0; i < infoData[9].length; i++) {
+                    if (infoData[9][i].OtStats) {
+                        if (infoData[9][i].OtStats.files) {
+                            if (infoData[9][i].OtStats.files.size) {
                                 var size = infoData[9][i].OtStats.files.size;
                                 var count = infoData[9][i].OtStats.files.count;
-                                if(count) {
+                                if (count) {
                                     otCount += count;
                                 }
-                                if(size != 0) {
+                                if (size != 0) {
                                     otSize = otSize + size;
                                 }
                             }
@@ -803,9 +810,9 @@ process.stdin.on('end', () => {
                 result.file_stats.size += otSize;
             }
 
-            if(result.file_stats.count > 0) {
+            if (result.file_stats.count > 0) {
                 var sizeString = (result.file_stats.size / (1024 ** 3)).toFixed(2) + ' GB';
-                if(sizeString == '0.00 GB') {
+                if (sizeString == '0.00 GB') {
                     sizeString = (result.file_stats.size / (1024 ** 2)).toFixed(2) + ' MB';
                 }
                 result.file_stats.size = sizeString;
@@ -913,8 +920,14 @@ process.stdin.on('end', () => {
         statusResults.loglevel = 'nothing';
         statusResults.janitor = 'nothing';
 
+        // check of host-os-release file was read properly
+        if (result.host_data.error !== null) {
+            increaseStatus('warning');
+            statusMessages.push('Host os-release file: ' + result.host_data.error);
+        }
+
         // check backups
-        if(result.sqlbackups !== true) {
+        if (result.sqlbackups !== true) {
             increaseStatus('warning');
             statusMessages.push('last Backup not found');
         }
@@ -996,11 +1009,11 @@ process.stdin.on('end', () => {
         const highStatus = openSearchWatermarkConfig.high.replace('%', '') * 1;
         const floodStatus = openSearchWatermarkConfig.flood_stage.replace('%', '') * 1;
 
-        if(usedDiskInPercent >= highStatus) {
+        if (usedDiskInPercent >= highStatus) {
             openSearchWatermarkStatus = 'high';
             statusMessages.push('openSearchWatermarkStatus: high');
         }
-        if(usedDiskInPercent >= floodStatus) {
+        if (usedDiskInPercent >= floodStatus) {
             openSearchWatermarkStatus = 'flood_stage';
             statusMessages.push('openSearchWatermarkStatus: flood_stage');
         }
