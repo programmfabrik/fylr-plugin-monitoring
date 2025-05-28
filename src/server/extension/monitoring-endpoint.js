@@ -667,8 +667,8 @@ process.stdin.on('end', () => {
         //////////////////////////////////////////////////////////////
         // Plugins
         let pluginNames = [];
-        if (configinfo?.plugin) {
-            pluginNames = Object.keys(configinfo.plugin);
+        for (let i = 0; i < infoData[5].Plugins.length; i++) { 
+            pluginNames.push(infoData[5].Plugins[i].Name);
         }
         result.plugins = pluginNames;
 
@@ -695,6 +695,18 @@ process.stdin.on('end', () => {
         }
         if (allowMonitoringEndpoint == false) {
             throwError("Der User besitzt nicht das Systemrecht für die Nutzung des Monitoring-Endpoints", '');
+        }
+
+        // check if commons-plugin is installed and activated
+        result.commonsPluginEnabled = false;
+
+        for (let i = 0; i < infoData[5].Plugins.length; i++) { 
+            if(infoData[5].Plugins[i].Name == 'commons-library') {
+                if (infoData[5].Plugins[i].Enabled == true) {
+                    result.commonsPluginEnabled = true;
+                    break;
+                }
+            }
         }
 
         // validation
@@ -919,6 +931,12 @@ process.stdin.on('end', () => {
         statusResults.purge = 'nothing';
         statusResults.loglevel = 'nothing';
         statusResults.janitor = 'nothing';
+
+        // if commons plugin is not enabled, increase status
+        if(result.commonsPluginEnabled == false) {
+            increaseStatus('warning');
+            statusMessages.push('Das Commons-Plugin ist nicht installiert oder aktiviert!');
+        }
 
         // check of host-os-release file was read properly
         if (result.host_data.error !== null) {
