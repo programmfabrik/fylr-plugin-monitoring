@@ -2,6 +2,7 @@ plugin:
   name: monitoring-endpoint
   version: 1.0
   l10n: l10n/monitoring-endpoint.csv
+  url: https://github.com/programmfabrik/fylr-plugin-monitoring
   displayname:
     de-DE: Monitoring-Endpoint
     en-US: Monitoring-Endpoint

@@ -6,7 +6,7 @@ help:
 
 all: build zip ## build and zip
 
-build: clean ## build plugin
+build: clean buildinfojson ## build plugin
 
 	npm install flatted
 	npm install https
@@ -25,6 +25,20 @@ build: clean ## build plugin
 	cp -r node_modules build/$(PLUGIN_NAME)/
 
 	cp manifest.master.yml build/$(PLUGIN_NAME)/manifest.yml # copy manifest
+
+	cp build-info.json build/$(PLUGIN_NAME)/build-info.json
+
+buildinfojson:
+	repo=`git remote get-url origin | sed -e 's/\.git$$//' -e 's#.*[/\\]##'` ;\
+	rev=`git show --no-patch --format=%H` ;\
+	lastchanged=`git show --no-patch --format=%ad --date=format:%Y-%m-%dT%T%z` ;\
+	builddate=`date +"%Y-%m-%dT%T%z"` ;\
+	echo '{' > build-info.json ;\
+	echo '  "repository": "'$$repo'",' >> build-info.json ;\
+	echo '  "rev": "'$$rev'",' >> build-info.json ;\
+	echo '  "lastchanged": "'$$lastchanged'",' >> build-info.json ;\
+	echo '  "builddate": "'$$builddate'"' >> build-info.json ;\
+	echo '}' >> build-info.json
 
 clean: ## clean
 				rm -rf build
