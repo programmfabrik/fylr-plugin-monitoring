@@ -485,7 +485,6 @@ process.stdin.on('end', () => {
             getHEADFromAPI(),
             getTagInfoFromAPI(),
             getPluginInfoFromAPI(),
-            getConfigFromAPI(),
             getConfigFromInspectAPI(),
             getPoolStatsFromAPI(),
             getDiskUsageFromAPI(),
@@ -497,12 +496,10 @@ process.stdin.on('end', () => {
 
         let statusMessages = [];
 
-        let configinfo = infoData[6];
-
         //////////////////////////////////////////////////////////////
         // get postgres version, cannot be part of Promise.all(), because we need the DSN.
         // DSN is in the response from getConfigFromInspectAPI()
-        const dsn = infoData[7].Config.Fylr.DB.DSN
+        const dsn = infoData[6].Config.Fylr.DB.DSN
         result.postgres_version = await getPostgresVersion(dsn);
 
         //////////////////////////////////////////////////////////////
@@ -515,7 +512,7 @@ process.stdin.on('end', () => {
 
         //////////////////////////////////////////////////////////////
         // check mysql-backups, a successfull backup from yesterday is wanted
-        result.sqlbackups = infoData[11];
+        result.sqlbackups = infoData[10];
 
         //////////////////////////////////////////////////////////////
         // email-configs
@@ -524,38 +521,38 @@ process.stdin.on('end', () => {
         //////////////////////////////////////////////////////////////
         // notifications?
         let notifications = false;
-        if (configinfo?.system?.config?.notification_scheduler?.active) {
-            if (configinfo.system.config.notification_scheduler.active = true) {
-                notifications = true;
-            }
+        let notificationsObject = infoData[6].BaseConfigList.find(obj => obj.Name === "notification_scheduler");
+        if(notificationsObject?.Values?.active?.ValueBool == true) {
+            notifications = true;
         }
         result.email.notifications = notifications;
 
         //////////////////////////////////////////////////////////////
         // Email-Server
         let email_server = '';
-        if (configinfo?.system?.config?.email_server?.server_addr) {
-            email_server = configinfo.system.config.email_server.server_addr;
+        let emailServerObject = infoData[6].BaseConfigList.find(obj => obj.Name === "email_server");
+        if(emailServerObject?.Values?.server_addr?.ValueText) {
+            email_server = emailServerObject.Values.server_addr.ValueText;
         }
         result.email.email_server = email_server;
 
         //////////////////////////////////////////////////////////////
         // Admin-Emails
         let maskedEmails = [];
-        if (configinfo?.system?.config?.email?.admin_emails) {
-            let adminEmails = configinfo.system.config.email.admin_emails;
-            adminEmails = adminEmails.filter(emailObj => emailObj.email.length > 0);
-            maskedEmails = adminEmails.map(email => {
-                email = email.email;
-                let maskedEmail = '';
-                for (let i = 0; i < email.length; i++) {
-                    maskedEmail += i % 2 === 0 ? email[i] : '*';
+        let maskedEmailsObject = infoData[6].BaseConfigList.find(obj => obj.Name === "email");
+
+        if(maskedEmailsObject?.Values?.admin_emails?.ValueTable[0]?.email?.ValueText) {
+            let adminEmailAdress = maskedEmailsObject.Values.admin_emails.ValueTable[0].email.ValueText;
+            let emailChars = adminEmailAdress.split('');
+            for (let i = 0; i < emailChars.length; i++) {
+                if(i % 2 !== 0) {
+                    emailChars[i] = '*';
                 }
-                return maskedEmail;
-            });
-        } else {
-            console.log('Admin emails do not exist.');
+            }
+            let maskedEmail = emailChars.join('');
+            maskedEmails = [maskedEmail];
         }
+
         result.email.adminEmails = maskedEmails;
 
         //////////////////////////////////////////////////////////////
@@ -564,19 +561,23 @@ process.stdin.on('end', () => {
         let janitorActive = false;
         let janitorEscalate = false;
         let eventDeletionEnabled = true;
-        if (configinfo?.system?.config?.janitor) {
+
+        let janitorObject = infoData[6].BaseConfigList.find(obj => obj.Name === "janitor");
+
+        if (janitorObject?.Values) {
             // janitor enabled?
-            if (configinfo.system.config.janitor.active == true) {
+            if (janitorObject?.Values?.active?.ValueBool == true) {
                 janitorActive = true;
             } else {
                 janitorEscalate = true;
             }
             // check if all events have a small deletion daylimit
-            for (const eventType in configinfo.system.config.janitor.events) {
-                eventConfigVal = configinfo.system.config.janitor.events[eventType];
-                if (eventConfigVal == null || eventConfigVal > 10 || eventConfigVal < 1) {
-                    janitorEscalate = true;
-                    eventDeletionEnabled = false;
+            if(janitorObject?.Values?.events?.ValueForm) {
+                for (const [eventType, eventVal] of Object.entries(janitorObject.Values.events.ValueForm)) {
+                    if (eventVal.ValueInt == null || eventVal.ValueInt > 10 || eventVal.ValueInt < 1) {
+                        janitorEscalate = true;
+                        eventDeletionEnabled = false;
+                    }
                 }
             }
         }
@@ -587,18 +588,20 @@ process.stdin.on('end', () => {
 
         //////////////////////////////////////////////////////////////
         // Loglevel
+
         let logLevel = '';
-        if (configinfo?.system?.config?.logging?.level) {
-            logLevel = configinfo.system.config.logging.level;
+
+        let LogLevelInfo = infoData[6]?.Config?.Fylr?.Logger?.Level;
+        if(LogLevelInfo) {
+            logLevel = LogLevelInfo;
         }
         result.logLevel = logLevel;
 
-
-        result.purge = {};
         //////////////////////////////////////////////////////////////
         // allow purge?
+        result.purge = {};
 
-        let purgeInfo = infoData[7].BaseConfigList.find(obj => obj.Name === "purge");
+        let purgeInfo = infoData[6].BaseConfigList.find(obj => obj.Name === "purge");
         purgeInfo = purgeInfo.Values;
         let allowPurge = false;
         if (purgeInfo?.allow_purge?.ValueBool) {
@@ -621,13 +624,17 @@ process.stdin.on('end', () => {
         //////////////////////////////////////////////////////////////
         // objectstore
         let objectstore = false;
-        if (configinfo?.system?.config?.objectstore?.uid) {
+        let objectStoreObject = infoData[6].BaseConfigList.find(obj => obj.Name === "objectstore");
+
+        if (objectStoreObject?.Values?.uid?.ValueText && objectStoreObject?.Values?.server?.ValueText) {
             objectstore = {};
-            objectstore.uid = configinfo.system.config.objectstore.uid;
-            if (configinfo?.system?.config?.objectstore?.instance) {
-                objectstore.instance = configinfo.system.config.objectstore.instance;
+            objectstore.server = objectStoreObject.Values.server.ValueText;
+            objectstore.uid = objectStoreObject.Values.uid.ValueText;
+            if(objectStoreObject?.Values?.instance?.ValueText) {
+                objectstore.instance = objectStoreObject.Values.instance.ValueText;
             }
         }
+
         result.objectstore = objectstore;
 
 
@@ -635,7 +642,7 @@ process.stdin.on('end', () => {
         // license
         result.license = {}
 
-        let licenseObject = infoData[7].BaseConfigList.find(obj => obj.Name === "license");
+        let licenseObject = infoData[6].BaseConfigList.find(obj => obj.Name === "license");
         licenseObject = licenseObject.Values.license.ValueJSON;
 
         var licenseDomains = licenseObject.domains;
@@ -773,11 +780,11 @@ process.stdin.on('end', () => {
         // objecttypes stat
         result.statistics = {};
         result.statistics.objecttypes = {};
-        if (infoData[10]) {
-            if (infoData[10]['IndexedByTableNameRead']) {
-                Object.keys(infoData[10]['IndexedByTableNameRead']).forEach(function (key) {
-                    if (infoData[10]['IndexedByTableNameRead'][key].Count) {
-                        result.statistics.objecttypes[key] = infoData[10]['IndexedByTableNameRead'][key].Count;
+        if (infoData[9]) {
+            if (infoData[9]['IndexedByTableNameRead']) {
+                Object.keys(infoData[9]['IndexedByTableNameRead']).forEach(function (key) {
+                    if (infoData[9]['IndexedByTableNameRead'][key].Count) {
+                        result.statistics.objecttypes[key] = infoData[9]['IndexedByTableNameRead'][key].Count;
                     }
                 });
             }
@@ -791,23 +798,23 @@ process.stdin.on('end', () => {
             result.file_stats.size = 0;
 
             // from pool
-            if (infoData[8]) {
-                if (infoData[8].PoolStatsSubpools) {
-                    result.file_stats.count = infoData[8].PoolStatsSubpools.files.count;
-                    result.file_stats.size = infoData[8].PoolStatsSubpools.files.size;
+            if (infoData[7]) {
+                if (infoData[7].PoolStatsSubpools) {
+                    result.file_stats.count = infoData[7].PoolStatsSubpools.files.count;
+                    result.file_stats.size = infoData[7].PoolStatsSubpools.files.size;
                 }
             }
 
             // from objecttype            
-            if (infoData[9].length > 0) {
+            if (infoData[8].length > 0) {
                 let otCount = 0;
                 let otSize = 0;
-                for (let i = 0; i < infoData[9].length; i++) {
-                    if (infoData[9][i].OtStats) {
-                        if (infoData[9][i].OtStats.files) {
-                            if (infoData[9][i].OtStats.files.size) {
-                                var size = infoData[9][i].OtStats.files.size;
-                                var count = infoData[9][i].OtStats.files.count;
+                for (let i = 0; i < infoData[8].length; i++) {
+                    if (infoData[8][i].OtStats) {
+                        if (infoData[8][i].OtStats.files) {
+                            if (infoData[8][i].OtStats.files.size) {
+                                var size = infoData[8][i].OtStats.files.size;
+                                var count = infoData[8][i].OtStats.files.count;
                                 if (count) {
                                     otCount += count;
                                 }
@@ -1016,8 +1023,8 @@ process.stdin.on('end', () => {
         }
 
         // check opensearch diskstatus
-        const openSearchWatermarkConfig = infoData[12].defaults.cluster.routing.allocation.disk.watermark;
-        const openSearchDiskStat = infoData[13].nodes.fs;
+        const openSearchWatermarkConfig = infoData[11].defaults.cluster.routing.allocation.disk.watermark;
+        const openSearchDiskStat = infoData[12].nodes.fs;
 
         // used disk in %
         const usedDiskInPercent = Math.ceil(100 - (openSearchDiskStat.available_in_bytes / openSearchDiskStat.total_in_bytes * 100))
