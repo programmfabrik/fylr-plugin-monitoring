@@ -591,9 +591,9 @@ process.stdin.on('end', () => {
 
         let logLevel = '';
 
-        let LogLevelInfo = infoData[6]?.Config?.Fylr?.Logger?.Level;
-        if(LogLevelInfo) {
-            logLevel = LogLevelInfo;
+        let LogLevelInfo = infoData[6].BaseConfigList.find(obj => obj.Name === "logging");
+        if (LogLevelInfo?.Values?.level?.ValueText) {
+            logLevel = LogLevelInfo.Values.level.ValueText;
         }
         result.logLevel = logLevel;
 
