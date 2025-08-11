@@ -415,6 +415,49 @@ process.stdin.on('end', () => {
                 });
         });
     }
+    function getOpenSearchClusterHealth() {
+        return new Promise((resolve, reject) => {
+            var url = 'http://opensearch:9200/_cluster/health?pretty'
+            fetch(url, {
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
+                .then(response => {
+                    if (response.ok) {
+                        resolve(response.json());
+                    } else {
+                        throwError("Fehler bei der Anfrage an " + url + " :" + response, '');
+                    }
+                })
+                .catch(error => {
+                    throwError("Fehler bei der Anfrage an" + url + " :" + error, '');
+                });
+        });
+    }
+    function getOpenSearchIndices() {
+        return new Promise((resolve, reject) => {
+            // We request the size in KB, because the api rounds to the nearest integer, so 1.4GB and 0.5GB would both become 1.
+            // With this we can get a more accurate number
+            var url = 'http://opensearch:9200/_cat/indices?format=json&bytes=kb'
+            fetch(url, {
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
+                .then(response => {
+                    if (response.ok) {
+                        resolve(response.json());
+                    } else {
+                        throwError("Fehler bei der Anfrage an " + url + " :" + response, '');
+                    }
+                })
+                .catch(error => {
+                    throwError("Fehler bei der Anfrage an" + url + " :" + error, '');
+                });
+        });
+    }
+
 
     function getHardwareStats() {
         const ram = roundDecimal(os.totalmem() / Math.pow(1024, 3), 2) + 'GB'
@@ -447,7 +490,7 @@ process.stdin.on('end', () => {
             };
 
         } catch (error) {
-            
+
             return {
                 id: null,
                 versionId: null,
@@ -491,7 +534,9 @@ process.stdin.on('end', () => {
             getObjectTypeStatsFromAPI(),
             checkSqlBackups(),
             getOpenSearchWatermarkConfig(),
-            getOpenSearchStats()
+            getOpenSearchStats(),
+            getOpenSearchClusterHealth(),
+            getOpenSearchIndices()
         ]);
 
         let statusMessages = [];
@@ -674,7 +719,7 @@ process.stdin.on('end', () => {
         //////////////////////////////////////////////////////////////
         // Plugins
         let pluginNames = [];
-        for (let i = 0; i < infoData[5].Plugins.length; i++) { 
+        for (let i = 0; i < infoData[5].Plugins.length; i++) {
             pluginNames.push(infoData[5].Plugins[i].Name);
         }
         result.plugins = pluginNames;
@@ -707,8 +752,8 @@ process.stdin.on('end', () => {
         // check if commons-plugin is installed and activated
         result.commonsPluginEnabled = false;
 
-        for (let i = 0; i < infoData[5].Plugins.length; i++) { 
-            if(infoData[5].Plugins[i].Name == 'commons-library') {
+        for (let i = 0; i < infoData[5].Plugins.length; i++) {
+            if (infoData[5].Plugins[i].Name == 'commons-library') {
                 if (infoData[5].Plugins[i].Enabled == true) {
                     result.commonsPluginEnabled = true;
                     break;
@@ -940,7 +985,7 @@ process.stdin.on('end', () => {
         statusResults.janitor = 'nothing';
 
         // if commons plugin is not enabled, increase status
-        if(result.commonsPluginEnabled == false) {
+        if (result.commonsPluginEnabled == false) {
             increaseStatus('warning');
             statusMessages.push('Das Commons-Plugin ist nicht installiert oder aktiviert!');
         }
@@ -1043,11 +1088,24 @@ process.stdin.on('end', () => {
             statusMessages.push('openSearchWatermarkStatus: flood_stage');
         }
 
+        // Cluster Health
+        const validStatus = ['green', 'yellow'];
+        const openSearchClusterHealth = infoData[13].status;
+        if (!validStatus.includes(openSearchClusterHealth)) {
+            increaseStatus('error');
+            statusMessages.push('Opensearch Cluster Health: ' + openSearchClusterHealth);
+        }
+
+        // Indices Size from KB to GB
+        const openSearchIndicesSize = infoData[14].reduce((sum, openSearchIndex) => sum + (openSearchIndex["store.size"] - 0), 0) / 1000 / 1000;
+
         result.opensearch = {};
         result.opensearch.status = {};
         result.opensearch.status.fs = {};
         result.opensearch.status.fs.status = openSearchWatermarkStatus;
         result.opensearch.status.fs.percent = usedDiskInPercent;
+        result.opensearch.status.fs.size = openSearchIndicesSize;
+        result.opensearch.status.health = openSearchClusterHealth;
 
         if (statusMessages.length > 0) {
             result.statusmessage = 'Problems: ' + statusMessages.join(', ');
