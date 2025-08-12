@@ -1097,14 +1097,17 @@ process.stdin.on('end', () => {
         }
 
         // Indices Size from KB to GB
-        const openSearchIndicesSize = infoData[14].reduce((sum, openSearchIndex) => sum + (openSearchIndex["store.size"] - 0), 0) / 1000 / 1000;
+        let openSearchIndicesSize = infoData[14].reduce((sum, openSearchIndex) => sum + (openSearchIndex["store.size"] - 0), 0) / 1000 / 1000;
+        // Math.round only rounds to the nearest integer, so we multiply by 100 before rounding to get 2 decimal places
+        // Number.EPSILON is here so numbers like 1.005 get rounded correctly.
+        openSearchIndicesSize = Math.round((openSearchIndicesSize + Number.EPSILON) * 100) / 100
 
         result.opensearch = {};
         result.opensearch.status = {};
         result.opensearch.status.fs = {};
         result.opensearch.status.fs.status = openSearchWatermarkStatus;
         result.opensearch.status.fs.percent = usedDiskInPercent;
-        result.opensearch.status.fs.size = openSearchIndicesSize;
+        result.opensearch.status.fs.size = openSearchIndicesSize + 'GB';
         result.opensearch.status.health = openSearchClusterHealth;
 
         if (statusMessages.length > 0) {
