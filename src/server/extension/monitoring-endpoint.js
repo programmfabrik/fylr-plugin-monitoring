@@ -520,6 +520,67 @@ process.stdin.on('end', () => {
         })
     }
 
+    function getUnusedPlugins(installedPlugins, currentSchema, baseConfig) {
+        const usedPluginsMap = { 'monitoring-endpoint': true }
+        const dependencyMap = {};
+        const installedPluginNames = [];
+        const unusedPlugins = [];
+
+        // get names of installed plugins and add their dependencies to a map + put disabled plugins into unusedPlugins
+        installedPlugins.Plugins.forEach(plugin => {
+            installedPluginNames.push(plugin.Name)
+            if (!plugin.Enabled) unusedPlugins.push(plugin.Name)
+
+            if (Array.isArray(plugin.Manifest?.PluginBase?.webfrontend?.dependencies)) {
+                dependencyMap[plugin.Name] = plugin.Manifest.PluginBase.webfrontend.dependencies
+            }
+        });
+
+        // add all used custom data types and their dependencies to usedPluginMap
+        currentSchema.tables.forEach(table => {
+            table.columns.forEach(colum => {
+                if (colum.kind !== 'column' || !colum.type.startsWith('custom:')) return;
+
+                // custom data types always have the form custom:base.custom-data-type-loc.loc
+                // so we can get the plugin name like this.
+                const pluginName = colum.type.split('.')[1]
+
+                if (usedPluginsMap[pluginName]) return;
+
+                usedPluginsMap[pluginName] = true;
+                if (Array.isArray(dependencyMap[pluginName])) {
+                    dependencyMap[pluginName].forEach(dependency => usedPluginsMap[dependency] = true)
+                }
+            })
+        });
+
+        if (installedPluginNames.includes('default-values-from-pool')) {
+            if (isDefaultValuesFromPoolUsed(baseConfig)) {
+                usedPluginsMap['default-values-from-pool'] = true
+            }
+        }
+
+        // get the difference between the installed plugins and the used plugins and push it into the list of unused plugins
+        const usedPlugins = Object.keys(usedPluginsMap)
+        unusedPlugins.push(...installedPluginNames.filter(plugin => !usedPlugins.includes(plugin)));
+
+        return unusedPlugins
+    }
+
+    function isDefaultValuesFromPoolUsed(baseConfig) {
+        let pluginConfig = baseConfig.BaseConfigList.filter(i => i.Scope === 'plugin.default-values-from-pool')
+        if (pluginConfig.length === 0) return false
+        pluginConfig = pluginConfig[0];
+
+        if (!pluginConfig.Values?.default_value_field_definitor?.ValueText) return false
+        const value = JSON.parse(pluginConfig.Values?.default_value_field_definitor?.ValueText)
+        if (value?.data_table?.length > 0) {
+            return true
+        } else {
+            return false
+        }
+    }
+
     async function fetchData() {
         const infoData = await Promise.all([
             getStatsInfoFromAPI(),
@@ -567,7 +628,7 @@ process.stdin.on('end', () => {
         // notifications?
         let notifications = false;
         let notificationsObject = infoData[6].BaseConfigList.find(obj => obj.Name === "notification_scheduler");
-        if(notificationsObject?.Values?.active?.ValueBool == true) {
+        if (notificationsObject?.Values?.active?.ValueBool == true) {
             notifications = true;
         }
         result.email.notifications = notifications;
@@ -576,7 +637,7 @@ process.stdin.on('end', () => {
         // Email-Server
         let email_server = '';
         let emailServerObject = infoData[6].BaseConfigList.find(obj => obj.Name === "email_server");
-        if(emailServerObject?.Values?.server_addr?.ValueText) {
+        if (emailServerObject?.Values?.server_addr?.ValueText) {
             email_server = emailServerObject.Values.server_addr.ValueText;
         }
         result.email.email_server = email_server;
@@ -586,11 +647,11 @@ process.stdin.on('end', () => {
         let maskedEmails = [];
         let maskedEmailsObject = infoData[6].BaseConfigList.find(obj => obj.Name === "email");
 
-        if(maskedEmailsObject?.Values?.admin_emails?.ValueTable[0]?.email?.ValueText) {
+        if (maskedEmailsObject?.Values?.admin_emails?.ValueTable[0]?.email?.ValueText) {
             let adminEmailAdress = maskedEmailsObject.Values.admin_emails.ValueTable[0].email.ValueText;
             let emailChars = adminEmailAdress.split('');
             for (let i = 0; i < emailChars.length; i++) {
-                if(i % 2 !== 0) {
+                if (i % 2 !== 0) {
                     emailChars[i] = '*';
                 }
             }
@@ -617,7 +678,7 @@ process.stdin.on('end', () => {
                 janitorEscalate = true;
             }
             // check if all events have a small deletion daylimit
-            if(janitorObject?.Values?.events?.ValueForm) {
+            if (janitorObject?.Values?.events?.ValueForm) {
                 for (const [eventType, eventVal] of Object.entries(janitorObject.Values.events.ValueForm)) {
                     if (eventVal.ValueInt == null || eventVal.ValueInt > 10 || eventVal.ValueInt < 1) {
                         janitorEscalate = true;
@@ -675,7 +736,7 @@ process.stdin.on('end', () => {
             objectstore = {};
             objectstore.server = objectStoreObject.Values.server.ValueText;
             objectstore.uid = objectStoreObject.Values.uid.ValueText;
-            if(objectStoreObject?.Values?.instance?.ValueText) {
+            if (objectStoreObject?.Values?.instance?.ValueText) {
                 objectstore.instance = objectStoreObject.Values.instance.ValueText;
             }
         }
@@ -723,6 +784,7 @@ process.stdin.on('end', () => {
             pluginNames.push(infoData[5].Plugins[i].Name);
         }
         result.plugins = pluginNames;
+        result.unusedPlugins = getUnusedPlugins(infoData[5], infoData[2], infoData[6])
 
         // inspect Schema and check if there is an open commit
         let currentData = infoData[2];
