@@ -536,7 +536,7 @@ process.stdin.on('end', () => {
             }
         });
 
-        // add all used custom data types and their dependencies to usedPluginMap
+        // add all used custom data types to usedPluginMap
         currentSchema.tables.forEach(table => {
             table.columns.forEach(colum => {
                 if (colum.kind !== 'column' || !colum.type.startsWith('custom:')) return;
@@ -548,9 +548,6 @@ process.stdin.on('end', () => {
                 if (usedPluginsMap[pluginName]) return;
 
                 usedPluginsMap[pluginName] = true;
-                if (Array.isArray(dependencyMap[pluginName])) {
-                    dependencyMap[pluginName].forEach(dependency => usedPluginsMap[dependency] = true)
-                }
             })
         });
 
@@ -559,6 +556,13 @@ process.stdin.on('end', () => {
                 usedPluginsMap['default-values-from-pool'] = true
             }
         }
+
+        // check if a used plugin has a dependency an add that to usedPluginsMap as well
+        for (const pluginName in usedPluginsMap) {
+            if (Array.isArray(dependencyMap[pluginName])) {
+                dependencyMap[pluginName].forEach(dependency => usedPluginsMap[dependency] = true)
+            }
+        };
 
         // get the difference between the installed plugins and the used plugins and push it into the list of unused plugins
         const usedPlugins = Object.keys(usedPluginsMap)
