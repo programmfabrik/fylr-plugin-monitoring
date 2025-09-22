@@ -375,7 +375,7 @@ process.stdin.on('end', () => {
     }
 
     function getOpenSearchWatermarkConfig() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {            
             var url = 'http://opensearch:9200/_cluster/settings?include_defaults=true&filter_path=defaults.cluster.routing.allocation.disk.watermark';
             fetch(url, {
                 headers: {
@@ -586,7 +586,19 @@ process.stdin.on('end', () => {
     }
 
     async function fetchData() {
-        const infoData = await Promise.all([
+        const [
+            statsInfoResult,
+            sessionInfoResult,
+            currentResult,
+            headResult,
+            tagInfoResult,
+            pluginInfoResult,
+            configInspectResult,
+            poolStatsResult,
+            diskUsageResult,
+            objectTypeStatsResult,
+            sqlBackupsResult
+        ] = await Promise.all([
             getStatsInfoFromAPI(),
             getSessionInfoFromAPI(),
             getCURRENTFromAPI(),
@@ -597,11 +609,7 @@ process.stdin.on('end', () => {
             getPoolStatsFromAPI(),
             getDiskUsageFromAPI(),
             getObjectTypeStatsFromAPI(),
-            checkSqlBackups(),
-            getOpenSearchWatermarkConfig(),
-            getOpenSearchStats(),
-            getOpenSearchClusterHealth(),
-            getOpenSearchIndices()
+            checkSqlBackups()
         ]);
 
         let statusMessages = [];
@@ -609,7 +617,7 @@ process.stdin.on('end', () => {
         //////////////////////////////////////////////////////////////
         // get postgres version, cannot be part of Promise.all(), because we need the DSN.
         // DSN is in the response from getConfigFromInspectAPI()
-        const dsn = infoData[6].Config.Fylr.DB.DSN
+        const dsn = configInspectResult.Config.Fylr.DB.DSN
         result.postgres_version = await getPostgresVersion(dsn);
 
         //////////////////////////////////////////////////////////////
@@ -622,7 +630,7 @@ process.stdin.on('end', () => {
 
         //////////////////////////////////////////////////////////////
         // check mysql-backups, a successfull backup from yesterday is wanted
-        result.sqlbackups = infoData[10];
+        result.sqlbackups = sqlBackupsResult;
 
         //////////////////////////////////////////////////////////////
         // email-configs
@@ -631,7 +639,7 @@ process.stdin.on('end', () => {
         //////////////////////////////////////////////////////////////
         // notifications?
         let notifications = false;
-        let notificationsObject = infoData[6].BaseConfigList.find(obj => obj.Name === "notification_scheduler");
+        let notificationsObject = configInspectResult.BaseConfigList.find(obj => obj.Name === "notification_scheduler");
         if (notificationsObject?.Values?.active?.ValueBool == true) {
             notifications = true;
         }
@@ -640,7 +648,7 @@ process.stdin.on('end', () => {
         //////////////////////////////////////////////////////////////
         // Email-Server
         let email_server = '';
-        let emailServerObject = infoData[6].BaseConfigList.find(obj => obj.Name === "email_server");
+        let emailServerObject = configInspectResult.BaseConfigList.find(obj => obj.Name === "email_server");
         if (emailServerObject?.Values?.server_addr?.ValueText) {
             email_server = emailServerObject.Values.server_addr.ValueText;
         }
@@ -649,7 +657,7 @@ process.stdin.on('end', () => {
         //////////////////////////////////////////////////////////////
         // Admin-Emails
         let maskedEmails = [];
-        let maskedEmailsObject = infoData[6].BaseConfigList.find(obj => obj.Name === "email");
+        let maskedEmailsObject = configInspectResult.BaseConfigList.find(obj => obj.Name === "email");
 
         if (maskedEmailsObject?.Values?.admin_emails?.ValueTable[0]?.email?.ValueText) {
             let adminEmailAdress = maskedEmailsObject.Values.admin_emails.ValueTable[0].email.ValueText;
@@ -672,7 +680,7 @@ process.stdin.on('end', () => {
         let janitorEscalate = false;
         let eventDeletionEnabled = true;
 
-        let janitorObject = infoData[6].BaseConfigList.find(obj => obj.Name === "janitor");
+        let janitorObject = configInspectResult.BaseConfigList.find(obj => obj.Name === "janitor");
 
         if (janitorObject?.Values) {
             // janitor enabled?
@@ -701,7 +709,7 @@ process.stdin.on('end', () => {
 
         let logLevel = '';
 
-        let LogLevelInfo = infoData[6].BaseConfigList.find(obj => obj.Name === "logging");
+        let LogLevelInfo = configInspectResult.BaseConfigList.find(obj => obj.Name === "logging");
         if (LogLevelInfo?.Values?.level?.ValueText) {
             logLevel = LogLevelInfo.Values.level.ValueText;
         }
@@ -711,7 +719,7 @@ process.stdin.on('end', () => {
         // allow purge?
         result.purge = {};
 
-        let purgeInfo = infoData[6].BaseConfigList.find(obj => obj.Name === "purge");
+        let purgeInfo = configInspectResult.BaseConfigList.find(obj => obj.Name === "purge");
         purgeInfo = purgeInfo.Values;
         let allowPurge = false;
         if (purgeInfo?.allow_purge?.ValueBool) {
@@ -734,7 +742,7 @@ process.stdin.on('end', () => {
         //////////////////////////////////////////////////////////////
         // objectstore
         let objectstore = false;
-        let objectStoreObject = infoData[6].BaseConfigList.find(obj => obj.Name === "objectstore");
+        let objectStoreObject = configInspectResult.BaseConfigList.find(obj => obj.Name === "objectstore");
 
         if (objectStoreObject?.Values?.uid?.ValueText && objectStoreObject?.Values?.server?.ValueText) {
             objectstore = {};
@@ -752,7 +760,7 @@ process.stdin.on('end', () => {
         // license
         result.license = {}
 
-        let licenseObject = infoData[6].BaseConfigList.find(obj => obj.Name === "license");
+        let licenseObject = configInspectResult.BaseConfigList.find(obj => obj.Name === "license");
         licenseObject = licenseObject.Values.license.ValueJSON;
 
         var licenseDomains = licenseObject.domains;
@@ -784,20 +792,20 @@ process.stdin.on('end', () => {
         //////////////////////////////////////////////////////////////
         // Plugins
         let pluginNames = [];
-        for (let i = 0; i < infoData[5].Plugins.length; i++) {
-            pluginNames.push(infoData[5].Plugins[i].Name);
+        for (let i = 0; i < pluginInfoResult.Plugins.length; i++) {
+            pluginNames.push(pluginInfoResult.Plugins[i].Name);
         }
         result.plugins = pluginNames;
-        result.unusedPlugins = getUnusedPlugins(infoData[5], infoData[2], infoData[6])
+        result.unusedPlugins = getUnusedPlugins(pluginInfoResult, currentResult, configInspectResult)
 
         // inspect Schema and check if there is an open commit
-        let currentData = infoData[2];
+        let currentData = currentResult;
         const currentSchemaVersion = currentData.version;
-        let headData = infoData[3];
+        let headData = headResult;
         const headSchemaVersion = headData.version;
         result.pendingSchemaCommits = !(headSchemaVersion == currentSchemaVersion);
 
-        let sessionData = infoData[1];
+        let sessionData = sessionInfoResult;
 
         // check, if user has systemright to use the validation-endpoint, else throw error
         let allowMonitoringEndpoint = false;
@@ -818,9 +826,9 @@ process.stdin.on('end', () => {
         // check if commons-plugin is installed and activated
         result.commonsPluginEnabled = false;
 
-        for (let i = 0; i < infoData[5].Plugins.length; i++) {
-            if (infoData[5].Plugins[i].Name == 'commons-library') {
-                if (infoData[5].Plugins[i].Enabled == true) {
+        for (let i = 0; i < pluginInfoResult.Plugins.length; i++) {
+            if (pluginInfoResult.Plugins[i].Name == 'commons-library') {
+                if (pluginInfoResult.Plugins[i].Enabled == true) {
                     result.commonsPluginEnabled = true;
                     break;
                 }
@@ -841,9 +849,9 @@ process.stdin.on('end', () => {
 
         if (validationEnabled == true) {
             // check if all objecttypes and tags, which are used in validation still exist!
-            const objecttypeList = infoData[2].tables.map(item => item.name);
+            const objecttypeList = currentResult.tables.map(item => item.name);
 
-            const tagList = infoData[4].Tags.flatMap(item => item.Tags.map(tag => tag.Id));
+            const tagList = tagInfoResult.Tags.flatMap(item => item.Tags.map(tag => tag.Id));
 
             // check tags
             let tagFilterFine = false;
@@ -875,7 +883,7 @@ process.stdin.on('end', () => {
 
         // disabled plugins? via https://fylr-test.gbv.de/inspect/plugins/
         result.pluginsAllEnabled = true;
-        pluginInfo = infoData[5].Plugins;
+        pluginInfo = pluginInfoResult.Plugins;
         disabledPlugins = pluginInfo.map(plugin => {
             if (plugin.Enabled == false) {
                 return plugin.Name;
@@ -891,11 +899,11 @@ process.stdin.on('end', () => {
         // objecttypes stat
         result.statistics = {};
         result.statistics.objecttypes = {};
-        if (infoData[9]) {
-            if (infoData[9]['IndexedByTableNameRead']) {
-                Object.keys(infoData[9]['IndexedByTableNameRead']).forEach(function (key) {
-                    if (infoData[9]['IndexedByTableNameRead'][key].Count) {
-                        result.statistics.objecttypes[key] = infoData[9]['IndexedByTableNameRead'][key].Count;
+        if (objectTypeStatsResult) {
+            if (objectTypeStatsResult['IndexedByTableNameRead']) {
+                Object.keys(objectTypeStatsResult['IndexedByTableNameRead']).forEach(function (key) {
+                    if (objectTypeStatsResult['IndexedByTableNameRead'][key].Count) {
+                        result.statistics.objecttypes[key] = objectTypeStatsResult['IndexedByTableNameRead'][key].Count;
                     }
                 });
             }
@@ -909,23 +917,23 @@ process.stdin.on('end', () => {
             result.file_stats.size = 0;
 
             // from pool
-            if (infoData[7]) {
-                if (infoData[7].PoolStatsSubpools) {
-                    result.file_stats.count = infoData[7].PoolStatsSubpools.files.count;
-                    result.file_stats.size = infoData[7].PoolStatsSubpools.files.size;
+            if (poolStatsResult) {
+                if (poolStatsResult.PoolStatsSubpools) {
+                    result.file_stats.count = poolStatsResult.PoolStatsSubpools.files.count;
+                    result.file_stats.size = poolStatsResult.PoolStatsSubpools.files.size;
                 }
             }
 
             // from objecttype            
-            if (infoData[8].length > 0) {
+            if (diskUsageResult.length > 0) {
                 let otCount = 0;
                 let otSize = 0;
-                for (let i = 0; i < infoData[8].length; i++) {
-                    if (infoData[8][i].OtStats) {
-                        if (infoData[8][i].OtStats.files) {
-                            if (infoData[8][i].OtStats.files.size) {
-                                var size = infoData[8][i].OtStats.files.size;
-                                var count = infoData[8][i].OtStats.files.count;
+                for (let i = 0; i < diskUsageResult.length; i++) {
+                    if (diskUsageResult[i].OtStats) {
+                        if (diskUsageResult[i].OtStats.files) {
+                            if (diskUsageResult[i].OtStats.files.size) {
+                                var size = diskUsageResult[i].OtStats.files.size;
+                                var count = diskUsageResult[i].OtStats.files.count;
                                 if (count) {
                                     otCount += count;
                                 }
@@ -1007,9 +1015,9 @@ process.stdin.on('end', () => {
         }
 
         // parse statistics
-        result.statistics.user = infoData[0].Stats.indices_objects.BaseRead.user;
-        result.statistics.group = infoData[0].Stats.indices_objects.BaseRead.group;
-        result.statistics.pool = infoData[0].Stats.indices_objects.BaseRead.pool;
+        result.statistics.user = statsInfoResult.Stats.indices_objects.BaseRead.user;
+        result.statistics.group = statsInfoResult.Stats.indices_objects.BaseRead.group;
+        result.statistics.pool = statsInfoResult.Stats.indices_objects.BaseRead.pool;
 
         //////////////////////////////////////////////////////////////
         // summary-status (ok, warning, error)
@@ -1133,48 +1141,71 @@ process.stdin.on('end', () => {
             }
         }
 
-        // check opensearch diskstatus
-        const openSearchWatermarkConfig = infoData[11].defaults.cluster.routing.allocation.disk.watermark;
-        const openSearchDiskStat = infoData[12].nodes.fs;
-
-        // used disk in %
-        const usedDiskInPercent = Math.ceil(100 - (openSearchDiskStat.available_in_bytes / openSearchDiskStat.total_in_bytes * 100))
-
-        let openSearchWatermarkStatus = 'low';
-
-        const highStatus = openSearchWatermarkConfig.high.replace('%', '') * 1;
-        const floodStatus = openSearchWatermarkConfig.flood_stage.replace('%', '') * 1;
-
-        if (usedDiskInPercent >= highStatus) {
-            openSearchWatermarkStatus = 'high';
-            statusMessages.push('openSearchWatermarkStatus: high');
+        // check for cluster-status
+        // --> if more than 1 elastic adress is configured, it is not a local single node cluster and is therefore checked somewhere else
+        let multipleElasticAdresses = false;
+        if (configInspectResult?.Config?.Fylr?.Elastic?.Addresses) {
+            if (Array.isArray(configInspectResult.Config.Fylr.Elastic.Addresses)) {
+                if (configInspectResult.Config.Fylr.Elastic.Addresses.length > 1) {
+                    multipleElasticAdresses = true;
+                }
+            }
         }
-        if (usedDiskInPercent >= floodStatus) {
-            openSearchWatermarkStatus = 'flood_stage';
-            statusMessages.push('openSearchWatermarkStatus: flood_stage');
-        }
-
-        // Cluster Health
-        const validStatus = ['green', 'yellow'];
-        const openSearchClusterHealth = infoData[13].status;
-        if (!validStatus.includes(openSearchClusterHealth)) {
-            increaseStatus('error');
-            statusMessages.push('Opensearch Cluster Health: ' + openSearchClusterHealth);
-        }
-
-        // Indices Size from KB to GB
-        let openSearchIndicesSize = infoData[14].reduce((sum, openSearchIndex) => sum + (openSearchIndex["store.size"] - 0), 0) / 1000 / 1000;
-        // Math.round only rounds to the nearest integer, so we multiply by 100 before rounding to get 2 decimal places
-        // Number.EPSILON is here so numbers like 1.005 get rounded correctly.
-        openSearchIndicesSize = Math.round((openSearchIndicesSize + Number.EPSILON) * 100) / 100
-
+        // only check if single node cluster
         result.opensearch = {};
         result.opensearch.status = {};
-        result.opensearch.status.fs = {};
-        result.opensearch.status.fs.status = openSearchWatermarkStatus;
-        result.opensearch.status.fs.percent = usedDiskInPercent;
-        result.opensearch.status.fs.size = openSearchIndicesSize + 'GB';
-        result.opensearch.status.health = openSearchClusterHealth;
+        if (multipleElasticAdresses == false) {
+            // check opensearch diskstatus
+            const openSearchWatermarkConfig = await getOpenSearchWatermarkConfig();
+            openSearchWatermarkConfig = openSearchWatermarkConfig.defaults.cluster.routing.allocation.disk.watermark;
+
+            const openSearchDiskStat = await getOpenSearchStats();
+            openSearchDiskStat = openSearchDiskStat.nodes.fs;
+
+            // used disk in %
+            const usedDiskInPercent = Math.ceil(100 - (openSearchDiskStat.available_in_bytes / openSearchDiskStat.total_in_bytes * 100))
+
+            let openSearchWatermarkStatus = 'low';
+
+            const highStatus = openSearchWatermarkConfig.high.replace('%', '') * 1;
+            const floodStatus = openSearchWatermarkConfig.flood_stage.replace('%', '') * 1;
+
+            if (usedDiskInPercent >= highStatus) {
+                openSearchWatermarkStatus = 'high';
+                statusMessages.push('openSearchWatermarkStatus: high');
+            }
+            if (usedDiskInPercent >= floodStatus) {
+                openSearchWatermarkStatus = 'flood_stage';
+                statusMessages.push('openSearchWatermarkStatus: flood_stage');
+            }
+
+            // Cluster Health
+            const validStatus = ['green', 'yellow'];
+            let openSearchClusterHealth = await getOpenSearchClusterHealth();
+            openSearchClusterHealth = openSearchClusterHealth.status;
+            
+            if (!validStatus.includes(openSearchClusterHealth)) {
+                increaseStatus('error');
+                statusMessages.push('Opensearch Cluster Health: ' + openSearchClusterHealth);
+            }
+
+            // Indices Size from KB to GB
+            let openSearchIndicesSize = await getOpenSearchIndices();
+            openSearchIndicesSize = openSearchIndicesSize.reduce((sum, openSearchIndex) => sum + (openSearchIndex["store.size"] - 0), 0) / 1000 / 1000;
+            // Math.round only rounds to the nearest integer, so we multiply by 100 before rounding to get 2 decimal places
+            // Number.EPSILON is here so numbers like 1.005 get rounded correctly.
+            openSearchIndicesSize = Math.round((openSearchIndicesSize + Number.EPSILON) * 100) / 100
+
+            result.opensearch.status.fs = {};
+            result.opensearch.status.fs.status = openSearchWatermarkStatus;
+            result.opensearch.status.fs.percent = usedDiskInPercent;
+            result.opensearch.status.fs.size = openSearchIndicesSize + 'GB';
+            result.opensearch.status.health = openSearchClusterHealth;
+        }
+        else {
+            result.opensearch.status.cluster = true;
+            result.opensearch.status.adresses = configInspectResult.Config.Fylr.Elastic.Addresses;
+        }
 
         if (statusMessages.length > 0) {
             result.statusmessage = 'Problems: ' + statusMessages.join(', ');
