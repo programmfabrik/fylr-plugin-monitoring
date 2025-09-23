@@ -1135,10 +1135,10 @@ process.stdin.on('end', () => {
         result.opensearch.status = {};
         if (multipleElasticAdresses == false) {
             // check opensearch diskstatus
-            const openSearchWatermarkConfig = await getOpenSearchWatermarkConfig();
+            let openSearchWatermarkConfig = await getOpenSearchWatermarkConfig();
             openSearchWatermarkConfig = openSearchWatermarkConfig.defaults.cluster.routing.allocation.disk.watermark;
 
-            const openSearchDiskStat = await getOpenSearchStats();
+            let openSearchDiskStat = await getOpenSearchStats();
             openSearchDiskStat = openSearchDiskStat.nodes.fs;
 
             // used disk in %
