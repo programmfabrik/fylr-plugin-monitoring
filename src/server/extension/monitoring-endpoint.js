@@ -521,52 +521,31 @@ process.stdin.on('end', () => {
     }
 
     function getUnusedPlugins(installedPlugins, currentSchema, baseConfig) {
-        const usedPluginsMap = { 'monitoring-endpoint': true }
-        const dependencyMap = {};
-        const installedPluginNames = [];
         const unusedPlugins = [];
 
         // get names of installed plugins and add their dependencies to a map + put disabled plugins into unusedPlugins
         installedPlugins.Plugins.forEach(plugin => {
-            installedPluginNames.push(plugin.Name)
-            if (!plugin.Enabled) unusedPlugins.push(plugin.Name)
+            const pluginName = plugin.Name
 
-            if (Array.isArray(plugin.Manifest?.PluginBase?.webfrontend?.dependencies)) {
-                dependencyMap[plugin.Name] = plugin.Manifest.PluginBase.webfrontend.dependencies
+            if(pluginName.startsWith('custom-data-type')){
+                const isUsed = currentSchema.tables.some((table) => {
+                    return table.columns.some((colum) => {
+                        if (colum.kind !== 'column' || !colum.type.startsWith('custom:')) return false;
+
+                        const columnPluginName = colum.type.split('.')[1]
+                        return columnPluginName ===  pluginName
+                    })
+                })
+                if(!isUsed){
+                    unusedPlugins.push(pluginName)
+                }
+                
+            } else if (pluginName === 'default-values-from-pool') {
+                if (!isDefaultValuesFromPoolUsed(baseConfig)) {
+                    unusedPlugins.push(pluginName)
+                }
             }
         });
-
-        // add all used custom data types to usedPluginMap
-        currentSchema.tables.forEach(table => {
-            table.columns.forEach(colum => {
-                if (colum.kind !== 'column' || !colum.type.startsWith('custom:')) return;
-
-                // custom data types always have the form custom:base.custom-data-type-loc.loc
-                // so we can get the plugin name like this.
-                const pluginName = colum.type.split('.')[1]
-
-                if (usedPluginsMap[pluginName]) return;
-
-                usedPluginsMap[pluginName] = true;
-            })
-        });
-
-        if (installedPluginNames.includes('default-values-from-pool')) {
-            if (isDefaultValuesFromPoolUsed(baseConfig)) {
-                usedPluginsMap['default-values-from-pool'] = true
-            }
-        }
-
-        // check if a used plugin has a dependency an add that to usedPluginsMap as well
-        for (const pluginName in usedPluginsMap) {
-            if (Array.isArray(dependencyMap[pluginName])) {
-                dependencyMap[pluginName].forEach(dependency => usedPluginsMap[dependency] = true)
-            }
-        };
-
-        // get the difference between the installed plugins and the used plugins and push it into the list of unused plugins
-        const usedPlugins = Object.keys(usedPluginsMap)
-        unusedPlugins.push(...installedPluginNames.filter(plugin => !usedPlugins.includes(plugin)));
 
         return unusedPlugins
     }
