@@ -375,7 +375,7 @@ process.stdin.on('end', () => {
     }
 
     function getOpenSearchWatermarkConfig() {
-        return new Promise((resolve, reject) => {            
+        return new Promise((resolve, reject) => {
             var url = 'http://opensearch:9200/_cluster/settings?include_defaults=true&filter_path=defaults.cluster.routing.allocation.disk.watermark';
             fetch(url, {
                 headers: {
@@ -520,6 +520,28 @@ process.stdin.on('end', () => {
         })
     }
 
+    function getSettingsFromAPI() {
+        return new Promise((resolve, reject) => {
+            var url = 'http://fylr.localhost:8081/api/v1/settings?access_token=' + access_token
+            fetch(url, {
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
+                .then(response => {
+                    if (response.ok) {
+                        resolve(response.json());
+                    } else {
+                        throwError("Fehler bei der Anfrage an /api/v1/settings ", '');
+                    }
+                })
+                .catch(error => {
+                    console.log(error);
+                    throwError("Fehler bei der Anfrage an /api/v1/settings ", '');
+                });
+        });
+    }
+
     function getUnusedPlugins(installedPlugins, currentSchema, baseConfig) {
         const unusedPlugins = [];
 
@@ -527,24 +549,26 @@ process.stdin.on('end', () => {
         installedPlugins.Plugins.forEach(plugin => {
             const pluginName = plugin.Name
 
-            if(pluginName.startsWith('custom-data-type')){
+            if (pluginName.startsWith('custom-data-type')) {
                 const isUsed = currentSchema.tables.some((table) => {
                     return table.columns.some((colum) => {
                         if (colum.kind !== 'column' || !colum.type.startsWith('custom:')) return false;
 
                         const columnPluginName = colum.type.split('.')[1]
-                        return columnPluginName ===  pluginName
+                        return columnPluginName === pluginName
                     })
                 })
-                if(!isUsed){
+                if (!isUsed) {
                     unusedPlugins.push(pluginName)
                 }
-                
+
             } else if (pluginName === 'default-values-from-pool') {
                 if (!isDefaultValuesFromPoolUsed(baseConfig)) {
                     unusedPlugins.push(pluginName)
                 }
             }
+            // editor-field-visibility und find-duplicate-field-values und custom-mask-splitter-detail-linked können noch geprüft werden
+            // Das sind Plugins, die in den Masken vorhanden sein sollten, wenn genutzt.
         });
 
         return unusedPlugins
@@ -576,7 +600,8 @@ process.stdin.on('end', () => {
             poolStatsResult,
             diskUsageResult,
             objectTypeStatsResult,
-            sqlBackupsResult
+            sqlBackupsResult,
+            settingsResult
         ] = await Promise.all([
             getStatsInfoFromAPI(),
             getSessionInfoFromAPI(),
@@ -588,7 +613,8 @@ process.stdin.on('end', () => {
             getPoolStatsFromAPI(),
             getDiskUsageFromAPI(),
             getObjectTypeStatsFromAPI(),
-            checkSqlBackups()
+            checkSqlBackups(),
+            getSettingsFromAPI()
         ]);
 
         let statusMessages = [];
@@ -1162,7 +1188,7 @@ process.stdin.on('end', () => {
             const validStatus = ['green', 'yellow'];
             let openSearchClusterHealth = await getOpenSearchClusterHealth();
             openSearchClusterHealth = openSearchClusterHealth.status;
-            
+
             if (!validStatus.includes(openSearchClusterHealth)) {
                 increaseStatus('error');
                 statusMessages.push('Opensearch Cluster Health: ' + openSearchClusterHealth);
@@ -1185,6 +1211,9 @@ process.stdin.on('end', () => {
             result.opensearch.status.cluster = true;
             result.opensearch.status.adresses = configInspectResult.Config.Fylr.Elastic.Addresses;
         }
+
+        // check if the used docker image is latest or main
+        result.dockerImage = settingsResult.version_release_date === '<unreleased>' ? 'latest' : 'main'
 
         if (statusMessages.length > 0) {
             result.statusmessage = 'Problems: ' + statusMessages.join(', ');
