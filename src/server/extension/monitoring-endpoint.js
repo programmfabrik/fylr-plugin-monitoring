@@ -1148,18 +1148,18 @@ process.stdin.on('end', () => {
 
         // check for cluster-status
         // --> if more than 1 elastic adress is configured, it is not a local single node cluster and is therefore checked somewhere else
-        let multipleElasticAdresses = false;
+        let isClusterConfig = false;
         if (configInspectResult?.Config?.Fylr?.Elastic?.Addresses) {
             if (Array.isArray(configInspectResult.Config.Fylr.Elastic.Addresses)) {
-                if (configInspectResult.Config.Fylr.Elastic.Addresses.length > 1) {
-                    multipleElasticAdresses = true;
+                if (configInspectResult.Config.Fylr.Elastic.Addresses.length > 1 || configInspectResult.Config.Fylr.Elastic.Addresses[0].includes('opensearch.fylr.gbv.de')) {
+                    isClusterConfig = true;
                 }
             }
         }
         // only check if single node cluster
         result.opensearch = {};
         result.opensearch.status = {};
-        if (multipleElasticAdresses == false) {
+        if (isClusterConfig == false) {
             // check opensearch diskstatus
             let openSearchWatermarkConfig = await getOpenSearchWatermarkConfig();
             openSearchWatermarkConfig = openSearchWatermarkConfig.defaults.cluster.routing.allocation.disk.watermark;
