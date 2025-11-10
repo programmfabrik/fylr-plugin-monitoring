@@ -20,12 +20,15 @@ base_config:
       enabled:
         type: bool
         position: 0
+        default: true
       license_show_dates_in_response:
         type: bool
         position: 1
+        default: true
       license_early_warning_in_weeks:
         type: int
         position: 2
+        default: 6
       status__email:
         type: select
         options:
