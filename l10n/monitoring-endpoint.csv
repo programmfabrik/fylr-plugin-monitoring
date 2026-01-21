@@ -43,3 +43,6 @@ server.config.parameter.system.monitoring_endpoint.status__janitor_event_deletio
 server.config.option.system.monitoring_endpoint.status__janitor_event_deletion.nothing,Nichts,Nothing
 server.config.option.system.monitoring_endpoint.status__janitor_event_deletion.warning,Warnung,Warning
 server.config.option.system.monitoring_endpoint.status__janitor_event_deletion.error,Fehler,Error
+
+server.config.parameter.system.monitoring_endpoint.enable_debug.label,Debug-Ausgabe (fylr-log) aktivieren,Enable debug output (fylr-log)
+server.config.parameter.system.monitoring_endpoint.enable_debug.checkbox,Aktivieren,Activate

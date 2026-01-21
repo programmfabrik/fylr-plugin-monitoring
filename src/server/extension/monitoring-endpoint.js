@@ -588,6 +588,18 @@ process.stdin.on('end', () => {
         }
     }
 
+    async function debugDuration(name, fn) {
+        const start = performance.now();
+        const result = await fn();
+        const end = performance.now();
+        // only debug, if set in config
+        if(info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.enable_debug == true) {
+            console.error(`Monitoring-Duration-Debug ${name}: ${(end - start).toFixed(1)} ms`);
+        }
+        
+        return result;
+    }
+
     async function fetchData() {
         const [
             statsInfoResult,
@@ -603,18 +615,18 @@ process.stdin.on('end', () => {
             sqlBackupsResult,
             settingsResult
         ] = await Promise.all([
-            getStatsInfoFromAPI(),
-            getSessionInfoFromAPI(),
-            getCURRENTFromAPI(),
-            getHEADFromAPI(),
-            getTagInfoFromAPI(),
-            getPluginInfoFromAPI(),
-            getConfigFromInspectAPI(),
-            getPoolStatsFromAPI(),
-            getDiskUsageFromAPI(),
-            getObjectTypeStatsFromAPI(),
-            checkSqlBackups(),
-            getSettingsFromAPI()
+                debugDuration("getStatsInfoFromAPI",          () => getStatsInfoFromAPI()),
+                debugDuration("getSessionInfoFromAPI",        () => getSessionInfoFromAPI()),
+                debugDuration("getCURRENTFromAPI",            () => getCURRENTFromAPI()),
+                debugDuration("getHEADFromAPI",               () => getHEADFromAPI()),
+                debugDuration("getTagInfoFromAPI",            () => getTagInfoFromAPI()),
+                debugDuration("getPluginInfoFromAPI",         () => getPluginInfoFromAPI()),
+                debugDuration("getConfigFromInspectAPI",      () => getConfigFromInspectAPI()),
+                debugDuration("getPoolStatsFromAPI",          () => getPoolStatsFromAPI()),
+                debugDuration("getDiskUsageFromAPI",          () => getDiskUsageFromAPI()),
+                debugDuration("getObjectTypeStatsFromAPI",    () => getObjectTypeStatsFromAPI()),
+                debugDuration("checkSqlBackups",              () => checkSqlBackups()),
+                debugDuration("getSettingsFromAPI",           () => getSettingsFromAPI())
         ]);
 
         let statusMessages = [];
@@ -622,7 +634,7 @@ process.stdin.on('end', () => {
         //////////////////////////////////////////////////////////////
         // get postgres version, cannot be part of Promise.all(), because we need the DSN.
         // DSN is in the response from getConfigFromInspectAPI()
-        const dsn = configInspectResult.Config.Fylr.DB.DSN
+        const dsn = configInspectResult?.Config?.Fylr?.DB?.DSN
         result.postgres_version = await getPostgresVersion(dsn);
 
         //////////////////////////////////////////////////////////////
@@ -711,7 +723,6 @@ process.stdin.on('end', () => {
 
         //////////////////////////////////////////////////////////////
         // Loglevel
-
         let logLevel = '';
 
         let LogLevelInfo = configInspectResult.BaseConfigList.find(obj => obj.Name === "logging");

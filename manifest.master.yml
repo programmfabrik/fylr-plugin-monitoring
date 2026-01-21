@@ -84,7 +84,11 @@ base_config:
           - warning
           - error
         default: "warning"
-        position: 8
+        position: 9
+      enable_debug:
+        type: bool
+        position: 10
+        default: false
 
 extensions:
   monitoring:
