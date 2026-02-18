@@ -1224,7 +1224,9 @@ process.stdin.on('end', () => {
         }
 
         // check if the used docker image is latest or main
-        result.dockerImage = settingsResult.version_release_date === '<unreleased>' ? 'latest' : 'main'
+        // latest is the newest released version
+        // main is the last commit on the main branch
+        result.dockerImage = settingsResult.version_release_date === '<unreleased>' ? 'main' : 'latest'
 
         if (statusMessages.length > 0) {
             result.statusmessage = 'Problems: ' + statusMessages.join(', ');
