@@ -1162,7 +1162,7 @@ process.stdin.on('end', () => {
         let isClusterConfig = false;
         if (configInspectResult?.Config?.Fylr?.Elastic?.Addresses) {
             if (Array.isArray(configInspectResult.Config.Fylr.Elastic.Addresses)) {
-                if (configInspectResult.Config.Fylr.Elastic.Addresses.length > 1 || configInspectResult.Config.Fylr.Elastic.Addresses[0].includes('opensearch.fylr.gbv.de')) {
+                if (configInspectResult.Config.Fylr.Elastic.Addresses.length > 1 || configInspectResult.Config.Fylr.Elastic.Addresses[0].includes('opensearch.fylr.gbv.de') || configInspectResult.Config.Fylr.Elastic.Addresses[0].includes('opensearch.kuniweb.gwdg.de')) {
                     isClusterConfig = true;
                 }
             }
