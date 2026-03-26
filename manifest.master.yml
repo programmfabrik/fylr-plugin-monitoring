@@ -112,6 +112,8 @@ extensions:
               value: "%info.json%"
 
   monitoring_with_diskusage:
+    plugin_user:
+      base_config: "monitoring_endpoint.root_api_user"
     exec:
       service: "node"
       commands:
