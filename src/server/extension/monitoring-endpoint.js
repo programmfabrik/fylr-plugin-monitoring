@@ -14,6 +14,7 @@ if (process.argv.length >= 3) {
 let withDiskUsage = false;
 if (process.argv[3]) {
     test = process.argv[3];
+
     if (test == 'diskusage:true') {
         withDiskUsage = true;
     }
@@ -57,6 +58,7 @@ process.stdin.on('end', () => {
     //////////////////////////////////////////////////////////////
     // Accesstoken
     let access_token = info.api_user_access_token;
+    let root_access_token = info.plugin_user_access_token;
 
     function getPluginInfoFromAPI() {
         return new Promise((resolve, reject) => {
@@ -307,21 +309,34 @@ process.stdin.on('end', () => {
 
     function getObjectTypeStatsFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8082/inspect/objects/?filter=&versions=latest&index=all&fileCount='
+            var url = 'http://fylr.localhost:8081/api/v1/search?debug=MainList.count_aggregation&pretty=0&access_token=' + root_access_token
             fetch(url, {
+                method: 'POST',
+                body: JSON.stringify({
+                    "aggregations": {
+                        "_objecttype": {
+                            "type": "term",
+                            "limit": 10000,
+                            "field": "_objecttype",
+                            "sort": "term"
+                        }
+                    },
+                    "search": [],
+                    "limit": 0
+                }),
                 headers: {
-                    'Accept': 'application/json'
+                    'Content-Type': 'application/json'
                 },
             })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
                     } else {
-                        throwError("Fehler bei der Anfrage an 1/objects/ :" + response, '');
+                        throwError("Fehler bei der Anfrage für 1 ObjectTypeStats :" + response.statusText, '');
                     }
                 })
                 .catch(error => {
-                    throwError("Fehler bei der Anfrage an 2/objects/ :" + error, '');
+                    throwError("Fehler bei der Anfrage für 2 ObjectTypeStats :" + error, '');
                 });
         });
     }
@@ -551,10 +566,10 @@ process.stdin.on('end', () => {
 
             if (pluginName.startsWith('custom-data-type')) {
                 const isUsed = currentSchema.tables.some((table) => {
-                    return table.columns.some((colum) => {
-                        if (colum.kind !== 'column' || !colum.type.startsWith('custom:')) return false;
+                    return table.columns.some((column) => {
+                        if (column.kind !== 'column' || !column.type.startsWith('custom:')) return false;
 
-                        const columnPluginName = colum.type.split('.')[1]
+                        const columnPluginName = column.type.split('.')[1]
                         return columnPluginName === pluginName
                     })
                 })
@@ -593,10 +608,10 @@ process.stdin.on('end', () => {
         const result = await fn();
         const end = performance.now();
         // only debug, if set in config
-        if(info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.enable_debug == true) {
+        if (info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.enable_debug == true) {
             console.error(`Monitoring-Duration-Debug ${name}: ${(end - start).toFixed(1)} ms`);
         }
-        
+
         return result;
     }
 
@@ -916,12 +931,14 @@ process.stdin.on('end', () => {
         result.statistics = {};
         result.statistics.objecttypes = {};
         if (objectTypeStatsResult) {
-            if (objectTypeStatsResult['IndexedByTableNameRead']) {
-                Object.keys(objectTypeStatsResult['IndexedByTableNameRead']).forEach(function (key) {
-                    if (objectTypeStatsResult['IndexedByTableNameRead'][key].Count) {
-                        result.statistics.objecttypes[key] = objectTypeStatsResult['IndexedByTableNameRead'][key].Count;
+            if (objectTypeStatsResult?.objecttypes && objectTypeStatsResult?.aggregations?._objecttype?.terms) {
+
+                objectTypeStatsResult.objecttypes.forEach((objecttype) => {
+                    const term = objectTypeStatsResult.aggregations._objecttype.terms.find((value) => value.term === objecttype)
+                    if (term) {
+                        result.statistics.objecttypes[objecttype] = term.count
                     }
-                });
+                })
             }
         }
 
@@ -1078,6 +1095,12 @@ process.stdin.on('end', () => {
         if (result.commonsPluginEnabled == false) {
             increaseStatus('warning');
             statusMessages.push('Das Commons-Plugin ist nicht installiert oder aktiviert!');
+        }
+
+        // if root_api_user is not configured, data like objectTypeStatsResult will always be empty
+        if (!info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.root_api_user) {
+            increaseStatus('warning');
+            statusMessages.push('root_api_user not configured');
         }
 
         // check of host-os-release file was read properly

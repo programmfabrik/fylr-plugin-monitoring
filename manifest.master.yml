@@ -85,13 +85,18 @@ base_config:
           - error
         default: "warning"
         position: 9
+      root_api_user:
+        type: user
+        position: 10
       enable_debug:
         type: bool
-        position: 10
+        position: 11
         default: false
 
 extensions:
   monitoring:
+    plugin_user:
+      base_config: "monitoring_endpoint.root_api_user"
     exec:
       service: "node"
       commands:
