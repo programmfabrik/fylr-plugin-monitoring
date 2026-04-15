@@ -128,7 +128,7 @@ process.stdin.on('end', () => {
 
     function getSessionInfoFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8081/api/v1/user/session?access_token=' + access_token
+            var url = info.api_url + '/api/v1/user/session?access_token=' + access_token
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -150,7 +150,7 @@ process.stdin.on('end', () => {
 
     function getCURRENTFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8081/api/v1/schema/user/CURRENT?access_token=' + access_token
+            var url = info.api_url + '/api/v1/schema/user/CURRENT?access_token=' + access_token
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -172,7 +172,7 @@ process.stdin.on('end', () => {
 
     function getHEADFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8081/api/v1/schema/user/HEAD?access_token=' + access_token
+            var url = info.api_url + '/api/v1/schema/user/HEAD?access_token=' + access_token
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -194,7 +194,7 @@ process.stdin.on('end', () => {
 
     function getConfigFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8081/api/v1/config?access_token=' + access_token
+            var url = info.api_url + '/api/v1/config?access_token=' + access_token
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -266,7 +266,7 @@ process.stdin.on('end', () => {
             return false;
         }
         return new Promise((resolve, reject) => {
-            fetch('http://fylr.localhost:8081/api/v1/objecttype?access_token=' + access_token, {
+            fetch(info.api_url + '/api/v1/objecttype?access_token=' + access_token, {
                 headers: {
                     'Accept': 'application/json'
                 },
@@ -309,7 +309,7 @@ process.stdin.on('end', () => {
 
     function getObjectTypeStatsFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8081/api/v1/search?debug=MainList.count_aggregation&pretty=0&access_token=' + root_access_token
+            var url = info.api_url + '/api/v1/search?debug=MainList.count_aggregation&pretty=0&access_token=' + root_access_token
             fetch(url, {
                 method: 'POST',
                 body: JSON.stringify({
@@ -537,7 +537,7 @@ process.stdin.on('end', () => {
 
     function getSettingsFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8081/api/v1/settings?access_token=' + access_token
+            var url = info.api_url + '/api/v1/settings?access_token=' + access_token
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -603,6 +603,219 @@ process.stdin.on('end', () => {
         }
     }
 
+    async function getErrorFileCount(currentSchema) {
+        const objectTypeToFileColumnPath = {
+            // objecttype : [columnPath1, columnPath2]
+        }
+        const baseTables = []
+        const subTables = []
+        currentSchema.tables.forEach(table => table.owned_by ? subTables.push(table) : baseTables.push(table));
+
+        baseTables.forEach(table => {
+            const paths = getFileColumnPaths(table.name, table.columns, subTables)
+            if (paths.length > 0) {
+                objectTypeToFileColumnPath[table.name] = paths
+            }
+        })
+
+        const poolIds = await getPoolIds()
+
+        const payload = getErrorFileCountPayload(objectTypeToFileColumnPath, poolIds)
+
+        const response = await fetch(info.api_url + "/api/v1/search?debug=SearchMain&pretty=0&access_token" + root_access_token, {
+            method: "POST",
+            headers: {
+                "Accept": "application/json",
+                "Authorization": "Bearer " + root_access_token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        })
+
+        const jsonResponse = await response.json()
+
+        const count = jsonResponse.count
+
+        return count;
+    }
+
+    function getFileColumnPaths(baseName, columns, subTables, columnNames = []) {
+        columns.forEach(column => {
+            if (column.kind === "column" && column.type === "eas") {
+                columnNames.push(`${baseName}.${column.name}.class_version_status`)
+            } else if (column.kind === "link") {
+                const table = subTables.find(table => table.name === column.other_table_name_hint)
+                if (!table) return;
+
+                getFileColumnPaths(`${baseName}.${column.name}`, table.columns, subTables, columnNames)
+            }
+        })
+
+        return columnNames
+    }
+
+    async function getPoolIds() {
+        const url = info.api_url + "/api/v1/search?debug=0-100000&pretty=0&access_token=" + root_access_token
+        const payload = {
+            "generate_rights": false,
+            "type": "pool",
+            "limit": 1000,
+            "sort": [],
+            "search": [],
+            "offset": 0
+        }
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+        const data = await response.json()
+
+        return data.objects?.map(obj => obj.pool._id) || []
+    }
+
+    function getErrorFileCountPayload(objectTypeToFileColumnPath, poolIds) {
+        const objectTypes = Object.keys(objectTypeToFileColumnPath)
+        const searchTypeSelector = {
+            "__filter": "SearchTypeSelector",
+            "type": "complex",
+            "bool": "must",
+            "search": [
+                {
+                    "bool": "should",
+                    "type": "in",
+                    "fields": objectTypes.map(type => type + '._pool.pool._id'),
+                    "in": poolIds,
+                },
+                {
+                    "type": "complex",
+                    "bool": "should",
+                    "search": [
+                        {
+                            "bool": "must_not",
+                            "type": "in",
+                            "fields": [
+                                "_objecttype"
+                            ],
+                            "in": objectTypes
+                        }
+                    ]
+                }
+            ]
+        }
+        const baseFileFilter = {
+            "type": "complex",
+            "search": [
+                {
+                    "type": "in",
+                    "fields": [
+                        // column path here
+                    ],
+                    "in": [
+                        "image.original.failed",
+                        "image.small.failed",
+                        "image.preview.failed",
+                        "image.preview_watermark.failed",
+                        "image.huge.failed",
+                        "image.full.failed",
+                        "image.svg.failed",
+                        "vector3d.original.failed",
+                        "video.original.failed",
+                        "video.small.failed",
+                        "video.preview.failed",
+                        "video.preview_watermark.failed",
+                        "video.huge.failed",
+                        "video.360p.failed",
+                        "video.720p.failed",
+                        "video.1080p.failed",
+                        "audio.original.failed",
+                        "audio.small.failed",
+                        "audio.preview.failed",
+                        "audio.preview_watermark.failed",
+                        "audio.aac.failed",
+                        "office.original.failed",
+                        "office.small.failed",
+                        "office.preview.failed",
+                        "office.preview_watermark.failed",
+                        "office.pages.failed",
+                        "office.pdf.failed",
+                        "archive.original.failed",
+                        "unknown.original.failed",
+                        "unknown.small.failed",
+                        "unknown.preview.failed",
+                        "unknown.preview_watermark.failed",
+                        "unknown.huge.failed",
+                        "unknown.full.failed",
+                        "unknown.svg.failed",
+                        "unknown.360p.failed",
+                        "unknown.720p.failed",
+                        "unknown.1080p.failed",
+                        "unknown.aac.failed",
+                        "unknown.pages.failed",
+                        "unknown.pdf.failed"
+                    ],
+                    "bool": "must"
+                }
+            ],
+            "bool": "should"
+        }
+
+        const payload = {
+            "offset": 0,
+            "limit": 100,
+            "generate_rights": true,
+            "search": [
+                searchTypeSelector,
+                {
+                    "type": "complex",
+                    "__filter": "SearchInput",
+                    "search": []
+                }
+            ],
+            "format": "standard",
+            "sort": [
+                {
+                    "field": "_system_object_id",
+                    "order": "DESC",
+                    "_level": 0
+                }
+            ],
+            "objecttypes": objectTypes,
+            "timezone": "Europe/Berlin"
+        }
+
+        for (const objectType in objectTypeToFileColumnPath) {
+            objectTypeToFileColumnPath[objectType].forEach(columnPath => {
+                let filter = structuredClone(baseFileFilter)
+                filter.search[0].fields = [columnPath]
+
+                const nestedDepth = (columnPath.match(/\._nested:/g) || []).length
+                for (let i = 0; i < nestedDepth; i++) {
+                    delete filter.bool
+                    filter = {
+                        "bool": "should",
+                        "type": "complex",
+                        "_unnest_counter": 0,
+                        "_is_nested_index": false,
+                        "search": [
+                            {
+                                "type": "complex",
+                                "_unnest_counter": 0,
+                                "search": [filter]
+                            }
+                        ]
+                    }
+                }
+
+                payload.search[1].search.push(filter)
+            })
+        }
+
+        return payload
+
+    }
+
     async function debugDuration(name, fn) {
         const start = performance.now();
         const result = await fn();
@@ -630,18 +843,18 @@ process.stdin.on('end', () => {
             sqlBackupsResult,
             settingsResult
         ] = await Promise.all([
-                debugDuration("getStatsInfoFromAPI",          () => getStatsInfoFromAPI()),
-                debugDuration("getSessionInfoFromAPI",        () => getSessionInfoFromAPI()),
-                debugDuration("getCURRENTFromAPI",            () => getCURRENTFromAPI()),
-                debugDuration("getHEADFromAPI",               () => getHEADFromAPI()),
-                debugDuration("getTagInfoFromAPI",            () => getTagInfoFromAPI()),
-                debugDuration("getPluginInfoFromAPI",         () => getPluginInfoFromAPI()),
-                debugDuration("getConfigFromInspectAPI",      () => getConfigFromInspectAPI()),
-                debugDuration("getPoolStatsFromAPI",          () => getPoolStatsFromAPI()),
-                debugDuration("getDiskUsageFromAPI",          () => getDiskUsageFromAPI()),
-                debugDuration("getObjectTypeStatsFromAPI",    () => getObjectTypeStatsFromAPI()),
-                debugDuration("checkSqlBackups",              () => checkSqlBackups()),
-                debugDuration("getSettingsFromAPI",           () => getSettingsFromAPI())
+            debugDuration("getStatsInfoFromAPI", () => getStatsInfoFromAPI()),
+            debugDuration("getSessionInfoFromAPI", () => getSessionInfoFromAPI()),
+            debugDuration("getCURRENTFromAPI", () => getCURRENTFromAPI()),
+            debugDuration("getHEADFromAPI", () => getHEADFromAPI()),
+            debugDuration("getTagInfoFromAPI", () => getTagInfoFromAPI()),
+            debugDuration("getPluginInfoFromAPI", () => getPluginInfoFromAPI()),
+            debugDuration("getConfigFromInspectAPI", () => getConfigFromInspectAPI()),
+            debugDuration("getPoolStatsFromAPI", () => getPoolStatsFromAPI()),
+            debugDuration("getDiskUsageFromAPI", () => getDiskUsageFromAPI()),
+            debugDuration("getObjectTypeStatsFromAPI", () => getObjectTypeStatsFromAPI()),
+            debugDuration("checkSqlBackups", () => checkSqlBackups()),
+            debugDuration("getSettingsFromAPI", () => getSettingsFromAPI())
         ]);
 
         let statusMessages = [];
@@ -948,10 +1161,13 @@ process.stdin.on('end', () => {
             result.file_stats = {};
             result.file_stats.count = 0;
             result.file_stats.size = 0;
+            result.file_stats.orphaned = 0;
+            result.file_stats.error = await getErrorFileCount(currentResult);
 
             // from pool
             if (poolStatsResult) {
                 if (poolStatsResult.PoolStatsSubpools) {
+                    result.file_stats.orphaned = poolStatsResult.PoolStatsSubpools.files.originals.deleted.count + poolStatsResult.PoolStatsSubpools.files.versions.deleted.count;
                     result.file_stats.count = poolStatsResult.PoolStatsSubpools.files.count;
                     result.file_stats.size = poolStatsResult.PoolStatsSubpools.files.size;
                 }
