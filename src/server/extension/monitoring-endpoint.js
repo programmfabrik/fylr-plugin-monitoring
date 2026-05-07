@@ -329,7 +329,8 @@ process.stdin.on('end', () => {
                 },
             })
                 .then(response => {
-                    if (response.ok) {
+                    // 400 is returned if the searchfield is unknown because the data model is empty
+                    if (response.ok || response.status === 400) {
                         resolve(response.json());
                     } else {
                         throwError("Fehler bei der Anfrage für 1 ObjectTypeStats :" + response.statusText, '');
@@ -1151,9 +1152,8 @@ process.stdin.on('end', () => {
         // objecttypes stat
         result.statistics = {};
         result.statistics.objecttypes = {};
-        if (objectTypeStatsResult) {
+        if (objectTypeStatsResult && objectTypeStatsResult.statuscode === 200) {
             if (objectTypeStatsResult?.objecttypes && objectTypeStatsResult?.aggregations?._objecttype?.terms) {
-
                 objectTypeStatsResult.objecttypes.forEach((objecttype) => {
                     const term = objectTypeStatsResult.aggregations._objecttype.terms.find((value) => value.term === objecttype)
                     if (term) {
@@ -1319,6 +1319,12 @@ process.stdin.on('end', () => {
         if (result.commonsPluginEnabled == false) {
             increaseStatus('warning');
             statusMessages.push('Das Commons-Plugin ist nicht installiert oder aktiviert!');
+        }
+
+        // if objectTypeStatsResult.statuscode is 400, increase status
+        if (objectTypeStatsResult.statuscode === 400) {
+            increaseStatus('warning');
+            statusMessages.push('objectTypeStatsResult Status 400: ' + objectTypeStatsResult.error);
         }
 
         // if root_api_user is not configured, data like objectTypeStatsResult will always be empty
