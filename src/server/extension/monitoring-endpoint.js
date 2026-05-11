@@ -939,7 +939,7 @@ process.stdin.on('end', () => {
             // check if all events have a small deletion daylimit
             if (janitorObject?.Values?.events?.ValueForm) {
                 for (const [eventType, eventVal] of Object.entries(janitorObject.Values.events.ValueForm)) {
-                    if (eventVal.ValueInt == null || eventVal.ValueInt > 10 || eventVal.ValueInt < 1) {
+                    if (eventVal.ValueInt == null || eventVal.ValueInt > 10) {
                         janitorEscalate = true;
                         eventDeletionEnabled = false;
                     }
