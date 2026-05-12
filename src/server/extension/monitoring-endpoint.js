@@ -926,6 +926,7 @@ process.stdin.on('end', () => {
         let janitorEscalate = false;
         let eventDeletionEnabled = true;
         let fileExpireDays = true
+        let minDeletedDays = true
 
         let janitorObject = configInspectResult.BaseConfigList.find(obj => obj.Name === "janitor");
 
@@ -951,10 +952,17 @@ process.stdin.on('end', () => {
                 janitorEscalate = true
                 fileExpireDays = false
             }
+            if (janitorObject.Values?.object_and_file_removal?.ValueForm?.object_purge?.ValueForm?.min_deleted_days?.ValueInt < 10) {
+                minDeletedDays = true
+            } else {
+                janitorEscalate = true
+                minDeletedDays = false
+            }
         }
         janitor.janitorActive = janitorActive;
         janitor.eventDeletionEnabled = eventDeletionEnabled;
         janitor.fileExpireDays = fileExpireDays;
+        janitor.minDeletedDays = minDeletedDays;
         janitor.escalate = janitorEscalate;
         result.janitor = janitor;
 
