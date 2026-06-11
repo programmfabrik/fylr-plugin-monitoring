@@ -126,6 +126,28 @@ process.stdin.on('end', () => {
         });
     }
 
+    function getObjectIndexInfo() {
+        return new Promise((resolve, reject) => {
+            var url = 'http://fylr.localhost:8082/inspect/objects/?index=not+found+READ'
+            fetch(url, {
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
+                .then(response => {
+                    if (response.ok) {
+                        resolve(response.json());
+                    } else {
+                        throwError("Fehler bei der Anfrage an /inspect/objects/?index=not+found+READ ", '');
+                    }
+                })
+                .catch(error => {
+                    console.log(error);
+                    throwError("Fehler bei der Anfrage an /inspect/objects/?index=not+found+READ ", '');
+                });
+        });
+    }
+
     function getSessionInfoFromAPI() {
         return new Promise((resolve, reject) => {
             var url = info.api_url + '/api/v1/user/session?access_token=' + access_token
@@ -842,7 +864,8 @@ process.stdin.on('end', () => {
             diskUsageResult,
             objectTypeStatsResult,
             sqlBackupsResult,
-            settingsResult
+            settingsResult,
+            objectIndexInfo
         ] = await Promise.all([
             debugDuration("getStatsInfoFromAPI", () => getStatsInfoFromAPI()),
             debugDuration("getSessionInfoFromAPI", () => getSessionInfoFromAPI()),
@@ -855,7 +878,8 @@ process.stdin.on('end', () => {
             debugDuration("getDiskUsageFromAPI", () => getDiskUsageFromAPI()),
             debugDuration("getObjectTypeStatsFromAPI", () => getObjectTypeStatsFromAPI()),
             debugDuration("checkSqlBackups", () => checkSqlBackups()),
-            debugDuration("getSettingsFromAPI", () => getSettingsFromAPI())
+            debugDuration("getSettingsFromAPI", () => getSettingsFromAPI()),
+            debugDuration("getObjectIndexInfo", () => getObjectIndexInfo()),
         ]);
 
         let statusMessages = [];
@@ -865,6 +889,18 @@ process.stdin.on('end', () => {
         // DSN is in the response from getConfigFromInspectAPI()
         const dsn = configInspectResult?.Config?.Fylr?.DB?.DSN
         result.postgres_version = await getPostgresVersion(dsn);
+
+        //////////////////////////////////////////////////////////////
+        // check for objects that are not in the index
+        let notFoundCount = 0
+        for (const typeName in objectIndexInfo.IndexedByTableNameRead) {
+            const objecttype = objectIndexInfo.IndexedByTableNameRead[typeName]
+            notFoundCount = objecttype?.NotFound?.length || 0
+        }
+        if (notFoundCount > 0) {
+            throwError(`${notFoundCount} Objects not indexed.`, '');
+        }
+
 
         //////////////////////////////////////////////////////////////
         // get ram, ram_quota, number of cpus, and cpu_quota
