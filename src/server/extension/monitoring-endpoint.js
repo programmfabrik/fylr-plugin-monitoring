@@ -580,8 +580,35 @@ process.stdin.on('end', () => {
         });
     }
 
-    function getUnusedPlugins(installedPlugins, currentSchema, baseConfig) {
+    function getCURRENTMasksFromAPI() {
+        return new Promise((resolve, reject) => {
+            var url = info.api_url + '/api/v1/mask/CURRENT?access_token=' + access_token
+            fetch(url, {
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
+                .then(response => {
+                    if (response.ok) {
+                        resolve(response.json());
+                    } else {
+                        throwError("Fehler bei der Anfrage an /schema/user/HEAD ", '');
+                    }
+                })
+                .catch(error => {
+                    console.log(error);
+                    throwError("Fehler bei der Anfrage an /schema/user/HEAD ", '');
+                });
+        });
+    }
+
+    function getUnusedPlugins(installedPlugins, currentSchema, baseConfig, currentMasks) {
         const unusedPlugins = [];
+        const maskSplitterPlugins = ['editor-field-visibility', 'find-duplicate-field-values', 'custom-mask-splitter-detail-linked', 'barcode-mask-splitter', 'mask-splitter-custom-javascript'];
+        // Sometimes the splitter name is not the same as the plugin name, so we need a map to get the correct name
+        const pluginNameToCustomSplitterType = {
+            'find-duplicate-field-values': 'find-dublicate-field-values'
+        }
 
         // get names of installed plugins and add their dependencies to a map + put disabled plugins into unusedPlugins
         installedPlugins.Plugins.forEach(plugin => {
@@ -604,9 +631,24 @@ process.stdin.on('end', () => {
                 if (!isDefaultValuesFromPoolUsed(baseConfig)) {
                     unusedPlugins.push(pluginName)
                 }
+            } else if (maskSplitterPlugins.includes(pluginName)) {
+                const splitterName = pluginNameToCustomSplitterType[pluginName] || pluginName
+                const isUsed = currentMasks.masks.some((mask) => {
+                    return mask.fields.some(field => {
+                        if (field.kind !== 'splitter' || !field.options) return false;
+
+                        const options = JSON.parse(field.options)
+                        if (options?.__customSplitterType === splitterName) return true;
+
+
+                        return false
+                    })
+                })
+                if (!isUsed) {
+                    unusedPlugins.push(pluginName)
+                }
+
             }
-            // editor-field-visibility und find-duplicate-field-values und custom-mask-splitter-detail-linked können noch geprüft werden
-            // Das sind Plugins, die in den Masken vorhanden sein sollten, wenn genutzt.
         });
 
         return unusedPlugins
@@ -865,6 +907,7 @@ process.stdin.on('end', () => {
             objectTypeStatsResult,
             sqlBackupsResult,
             settingsResult,
+            currentMasksResult,
             objectIndexInfo
         ] = await Promise.all([
             debugDuration("getStatsInfoFromAPI", () => getStatsInfoFromAPI()),
@@ -879,6 +922,7 @@ process.stdin.on('end', () => {
             debugDuration("getObjectTypeStatsFromAPI", () => getObjectTypeStatsFromAPI()),
             debugDuration("checkSqlBackups", () => checkSqlBackups()),
             debugDuration("getSettingsFromAPI", () => getSettingsFromAPI()),
+            debugDuration("getCURRENTMasksFromAPI", () => getCURRENTMasksFromAPI()),
             debugDuration("getObjectIndexInfo", () => getObjectIndexInfo()),
         ]);
 
@@ -1093,7 +1137,7 @@ process.stdin.on('end', () => {
             pluginNames.push(pluginInfoResult.Plugins[i].Name);
         }
         result.plugins = pluginNames;
-        result.unusedPlugins = getUnusedPlugins(pluginInfoResult, currentResult, configInspectResult)
+        result.unusedPlugins = getUnusedPlugins(pluginInfoResult, currentResult, configInspectResult, currentMasksResult)
 
         // inspect Schema and check if there is an open commit
         let currentData = currentResult;
