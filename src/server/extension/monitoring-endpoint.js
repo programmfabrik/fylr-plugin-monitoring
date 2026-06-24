@@ -633,17 +633,7 @@ process.stdin.on('end', () => {
                 }
             } else if (maskSplitterPlugins.includes(pluginName)) {
                 const splitterName = pluginNameToCustomSplitterType[pluginName] || pluginName
-                const isUsed = currentMasks.masks.some((mask) => {
-                    return mask.fields.some(field => {
-                        if (field.kind !== 'splitter' || !field.options) return false;
-
-                        const options = JSON.parse(field.options)
-                        if (options?.__customSplitterType === splitterName) return true;
-
-
-                        return false
-                    })
-                })
+                const isUsed = isMaskSplitterUsed(splitterName, currentMasks.masks)
                 if (!isUsed) {
                     unusedPlugins.push(pluginName)
                 }
@@ -652,6 +642,26 @@ process.stdin.on('end', () => {
         });
 
         return unusedPlugins
+    }
+
+    function isMaskSplitterUsed(splitterName, masks) {
+        for (let i = 0; i < masks.length; i++) {
+            const mask = masks[i];
+            const isUsed = mask.fields.some((field) => {
+                if (field.kind === 'linked-table') {
+                    return isMaskSplitterUsed(splitterName, [field.mask])
+                } else if (field.kind !== 'splitter' || !field.options) return false;
+
+                const options = JSON.parse(field.options)
+                if (options?.__customSplitterType === splitterName) return true;
+
+
+                return false
+            })
+            if (isUsed) {
+                return true;
+            }
+        }
     }
 
     function isDefaultValuesFromPoolUsed(baseConfig) {
