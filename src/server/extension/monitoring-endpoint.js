@@ -604,10 +604,12 @@ process.stdin.on('end', () => {
 
     function getUnusedPlugins(installedPlugins, currentSchema, baseConfig, currentMasks) {
         const unusedPlugins = [];
-        const maskSplitterPlugins = ['editor-field-visibility', 'find-duplicate-field-values', 'custom-mask-splitter-detail-linked', 'barcode-mask-splitter', 'mask-splitter-custom-javascript'];
+        const maskSplitterPlugins = ['editor-field-visibility', 'find-duplicate-field-values', 'custom-mask-splitter-detail-linked', 'easydb-custom-mask-splitter-detail-linked-plugin', 'barcode-mask-splitter', 'mask-splitter-custom-javascript'];
         // Sometimes the splitter name is not the same as the plugin name, so we need a map to get the correct name
         const pluginNameToCustomSplitterType = {
-            'find-duplicate-field-values': 'find-dublicate-field-values'
+            'find-duplicate-field-values': 'find-dublicate-field-values',
+            'custom-mask-splitter-detail-linked': 'detail-linked-mask-splitter',
+            'easydb-custom-mask-splitter-detail-linked-plugin': 'detail-linked-mask-splitter',
         }
 
         // get names of installed plugins and add their dependencies to a map + put disabled plugins into unusedPlugins
