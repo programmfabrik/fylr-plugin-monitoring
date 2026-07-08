@@ -92,6 +92,12 @@ base_config:
         type: bool
         position: 11
         default: false
+      internal_url:
+        type: text
+        position: 12
+      opensearch_url:
+        type: text
+        position: 13
 
 extensions:
   monitoring:

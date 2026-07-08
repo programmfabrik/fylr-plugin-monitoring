@@ -20,6 +20,16 @@ if (process.argv[3]) {
     }
 }
 
+let internal_api_url = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.internal_url || "http://fylr.localhost:8082"
+let opensearch_api_url = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.opensearch_url || "http://opensearch:9200"
+
+if (internal_api_url.endsWith('/')) {
+    internal_api_url = internal_api_url.slice(0, -1);
+}
+if (opensearch_api_url.endsWith('/')) {
+    opensearch_api_url = opensearch_api_url.slice(0, -1);
+}
+
 // throws api-error to frontend
 function throwError(error, description) {
     console.log(JSON.stringify({
@@ -62,7 +72,7 @@ process.stdin.on('end', () => {
 
     function getPluginInfoFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8082/inspect/plugins';
+            var url = internal_api_url + '/inspect/plugins';
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -84,7 +94,7 @@ process.stdin.on('end', () => {
 
     function getStatsInfoFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8082/inspect/system/status/'
+            var url = internal_api_url + '/inspect/system/status/'
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -106,7 +116,7 @@ process.stdin.on('end', () => {
 
     function getTagInfoFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8082/inspect/tags/'
+            var url = internal_api_url + '/inspect/tags/'
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -128,7 +138,7 @@ process.stdin.on('end', () => {
 
     function getObjectIndexInfo() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8082/inspect/objects/?index=not+found+READ'
+            var url = internal_api_url + '/inspect/objects/?index=not+found+READ'
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -238,7 +248,7 @@ process.stdin.on('end', () => {
 
     function getConfigFromInspectAPI() {
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8082/inspect/config'
+            var url = internal_api_url + '/inspect/config'
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -263,7 +273,7 @@ process.stdin.on('end', () => {
             return false;
         }
         return new Promise((resolve, reject) => {
-            var url = 'http://fylr.localhost:8082/inspect/pools/1/'
+            var url = internal_api_url + '/inspect/pools/1/'
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -303,7 +313,7 @@ process.stdin.on('end', () => {
                 .then(objecttypes => {
                     objecttypes = objecttypes.map((objecttype) => objecttype.objecttype.name);
                     let statsPromises = objecttypes.map(objecttype => {
-                        let url = `http://fylr.localhost:8082/inspect/objecttypes/${objecttype}/`;
+                        let url = `${internal_api_url}/inspect/objecttypes/${objecttype}/`;
                         return fetch(url, {
                             headers: {
                                 'Accept': 'application/json'
@@ -414,7 +424,7 @@ process.stdin.on('end', () => {
 
     function getOpenSearchWatermarkConfig() {
         return new Promise((resolve, reject) => {
-            var url = 'http://opensearch:9200/_cluster/settings?include_defaults=true&filter_path=defaults.cluster.routing.allocation.disk.watermark';
+            var url = opensearch_api_url + '/_cluster/settings?include_defaults=true&filter_path=defaults.cluster.routing.allocation.disk.watermark';
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -435,7 +445,7 @@ process.stdin.on('end', () => {
 
     function getOpenSearchStats() {
         return new Promise((resolve, reject) => {
-            var url = 'http://opensearch:9200/_cluster/stats?pretty&filter_path=nodes.fs'
+            var url = opensearch_api_url + '/_cluster/stats?pretty&filter_path=nodes.fs'
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -455,7 +465,7 @@ process.stdin.on('end', () => {
     }
     function getOpenSearchClusterHealth() {
         return new Promise((resolve, reject) => {
-            var url = 'http://opensearch:9200/_cluster/health?pretty'
+            var url = opensearch_api_url + '/_cluster/health?pretty'
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
@@ -477,7 +487,7 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             // We request the size in KB, because the api rounds to the nearest integer, so 1.4GB and 0.5GB would both become 1.
             // With this we can get a more accurate number
-            var url = 'http://opensearch:9200/_cat/indices?format=json&bytes=kb'
+            var url = opensearch_api_url + '/_cat/indices?format=json&bytes=kb'
             fetch(url, {
                 headers: {
                     'Accept': 'application/json'
