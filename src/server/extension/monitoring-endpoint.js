@@ -1262,7 +1262,7 @@ process.stdin.on('end', () => {
         // objecttypes stat
         result.statistics = {};
         result.statistics.objecttypes = {};
-        if (objectTypeStatsResult && objectTypeStatsResult.statuscode === 200) {
+        if (objectTypeStatsResult) {
             if (objectTypeStatsResult?.objecttypes && objectTypeStatsResult?.aggregations?._objecttype?.terms) {
                 objectTypeStatsResult.objecttypes.forEach((objecttype) => {
                     const term = objectTypeStatsResult.aggregations._objecttype.terms.find((value) => value.term === objecttype)
@@ -1272,7 +1272,6 @@ process.stdin.on('end', () => {
                 })
             }
         }
-
 
         // filestats
         if (withDiskUsage) {
