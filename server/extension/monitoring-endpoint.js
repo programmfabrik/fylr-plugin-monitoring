@@ -4,7 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const os = require('os');
-const pg = require('pg');
+
+// changes for local pg.bundle, build via "npx esbuild node_modules/pg/lib/index.js --bundle --platform=node --target=node18 --outfile=src/pg.bundle.js"
+// const pg = require('pg');
+const pg = module.exports;
 
 let info = {}
 if (process.argv.length >= 3) {
@@ -22,6 +25,8 @@ if (process.argv[3]) {
 
 let internal_api_url = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.internal_url || "http://fylr.localhost:8082"
 let opensearch_api_url = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.opensearch_url || "http://opensearch:9200"
+let postgres_username = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.postgres_username || "fylr"
+let postgres_password = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.postgres_password || ""
 
 if (internal_api_url.endsWith('/')) {
     internal_api_url = internal_api_url.slice(0, -1);
@@ -550,10 +555,27 @@ process.stdin.on('end', () => {
     }
 
     function getPostgresVersion(dsn) {
+        // replace username and password from config
+
+        // multiple forms possible:
+        // postgres://fylr:fylr@postgresql:5432/fylr?sslmode=disable
+        // postgres://fylr@fylr-3d-db-rw:5432/fylr?sslmode=disable&application_name=fylr&password=***
+
+        const dns_url = new URL(dsn);
+        dns_url.username = postgres_username;
+        if (dns_url.password) {
+            dns_url.password = postgres_password;
+        }
+        if (dns_url.searchParams.has("password")) {
+            dns_url.searchParams.set("password", postgres_password);
+        }
+
+        const updatedDsn = dns_url.toString();
+
         return new Promise(async (resolve, reject) => {
             try {
                 const client = new pg.Client({
-                    connectionString: dsn
+                    connectionString: updatedDsn
                 })
                 await client.connect()
 
@@ -1246,8 +1268,8 @@ process.stdin.on('end', () => {
 
         // disabled plugins? via https://fylr-test.gbv.de/inspect/plugins/
         result.pluginsAllEnabled = true;
-        pluginInfo = pluginInfoResult.Plugins;
-        disabledPlugins = pluginInfo.map(plugin => {
+        let pluginInfo = pluginInfoResult.Plugins;
+        let disabledPlugins = pluginInfo.map(plugin => {
             if (plugin.Enabled == false) {
                 return plugin.Name;
             } else {

@@ -1,7 +1,6 @@
 plugin:
   name: monitoring-endpoint
   version: 1.0
-  l10n: l10n/monitoring-endpoint.csv
   url: https://github.com/programmfabrik/fylr-plugin-monitoring
   displayname:
     de-DE: Monitoring-Endpoint
@@ -12,6 +11,12 @@ plugin:
   server:
     api-version:
       require: 1
+  l10n: l10n/monitoring-endpoint.csv
+  webfrontend:
+    url: monitoring-endpoint.js
+    css: monitoring-endpoint.css
+
+base_url_prefix: "webfrontend"
 
 base_config:
   - name: monitoring_endpoint
@@ -98,6 +103,12 @@ base_config:
       opensearch_url:
         type: text
         position: 13
+      postgres_username:
+        type: text
+        position: 14
+      postgres_password:
+        type: secret
+        position: 15
 
 extensions:
   monitoring:

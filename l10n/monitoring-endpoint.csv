@@ -51,3 +51,5 @@ server.config.parameter.system.monitoring_endpoint.enable_debug.checkbox,Aktivie
 
 server.config.parameter.system.monitoring_endpoint.internal_url.label,Interne API-URL überschreiben,Override internal API-URL
 server.config.parameter.system.monitoring_endpoint.opensearch_url.label,Opensearch API-URL überschreiben,Override Opensearch API-URL
+server.config.parameter.system.monitoring_endpoint.postgres_username.label,PostgreSQL Benutzername überschreiben,Override PostgreSQL Username
+server.config.parameter.system.monitoring_endpoint.postgres_password.label,PostgreSQL Passwort überschreiben,Override PostgreSQL Password

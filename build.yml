@@ -1,0 +1,20 @@
+server:
+  install:
+    - server
+    - l10n
+    - webfrontend/monitoring-endpoint.css
+
+webfrontend:
+  coffee1:
+    - webfrontend/monitoring-endpoint.coffee
+  install:
+    - webfrontend/monitoring-endpoint.css
+
+build:
+  bundles:
+    - out: server/extension/monitoring-endpoint.js
+      sources:
+        - src/pg.bundle.js
+        - server/extension/monitoring-endpoint.js
+  zip_aliases:
+    - monitoringEndpoint.zip

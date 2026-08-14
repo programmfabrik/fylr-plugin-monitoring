@@ -1,0 +1,3 @@
+Gebaut mit 
+
+npx esbuild node_modules/pg/lib/index.js --bundle --platform=node --target=node18 --outfile=src/pg.bundle.js
