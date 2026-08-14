@@ -1028,9 +1028,10 @@ process.stdin.on('end', () => {
         // Admin-Emails
         let maskedEmails = [];
         let maskedEmailsObject = configInspectResult.BaseConfigList.find(obj => obj.Name === "email");
+        const adminEmailRows = maskedEmailsObject?.Values?.admin_emails?.ValueTable ?? [];
 
-        if (maskedEmailsObject?.Values?.admin_emails?.ValueTable[0]?.email?.ValueText) {
-            let adminEmailAdress = maskedEmailsObject.Values.admin_emails.ValueTable[0].email.ValueText;
+        if (adminEmailRows.length > 0 && adminEmailRows[0]?.email?.ValueText) {
+            let adminEmailAdress = adminEmailRows[0].email.ValueText;
             let emailChars = adminEmailAdress.split('');
             for (let i = 0; i < emailChars.length; i++) {
                 if (i % 2 !== 0) {
