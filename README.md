@@ -17,7 +17,7 @@ Hint: The "validation"-section checks configuration of https://github.com/progra
 
 ## installation
 
-The latest version of this plugin can be found [here](https://github.com/programmfabrik/fylr-plugin-monitoring/releases/latest/download/monitoringEndpoint.zip).
+The latest version of this plugin can be found [here](https://github.com/programmfabrik/fylr-plugin-monitoring/releases/latest/download/fylr-plugin-monitoring.zip).
 
 The ZIP can be downloaded and installed using the plugin manager, or used directly (recommended).
 
