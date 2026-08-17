@@ -107,7 +107,7 @@ base_config:
         type: text
         position: 14
       postgres_password:
-        type: secret
+        type: text
         position: 15
 
 extensions:

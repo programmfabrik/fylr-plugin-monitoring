@@ -570,6 +570,8 @@ process.stdin.on('end', () => {
             dns_url.searchParams.set("password", postgres_password);
         }
 
+        console.error("Updated DSN for PostgreSQL connection: " + dns_url.toString());
+
         const updatedDsn = dns_url.toString();
 
         return new Promise(async (resolve, reject) => {
