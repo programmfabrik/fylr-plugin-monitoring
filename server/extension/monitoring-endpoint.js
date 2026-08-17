@@ -26,7 +26,7 @@ if (process.argv[3]) {
 let internal_api_url = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.internal_url || "http://fylr.localhost:8082"
 let opensearch_api_url = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.opensearch_url || "http://opensearch:9200"
 let postgres_username = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.postgres_username || "fylr"
-let postgres_password = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.postgres_password || ""
+let postgres_password = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.postgres_password || "fylr"
 
 if (internal_api_url.endsWith('/')) {
     internal_api_url = internal_api_url.slice(0, -1);
