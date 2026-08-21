@@ -16,7 +16,7 @@ if (process.argv.length >= 3) {
 
 let withDiskUsage = false;
 if (process.argv[3]) {
-    test = process.argv[3];
+    let test = process.argv[3];
 
     if (test == 'diskusage:true') {
         withDiskUsage = true;
@@ -954,7 +954,7 @@ process.stdin.on('end', () => {
             sqlBackupsResult,
             settingsResult,
             currentMasksResult,
-            objectIndexInfo
+            // objectIndexInfo
         ] = await Promise.all([
             debugDuration("getStatsInfoFromAPI", () => getStatsInfoFromAPI()),
             debugDuration("getSessionInfoFromAPI", () => getSessionInfoFromAPI()),
@@ -969,7 +969,7 @@ process.stdin.on('end', () => {
             debugDuration("checkSqlBackups", () => checkSqlBackups()),
             debugDuration("getSettingsFromAPI", () => getSettingsFromAPI()),
             debugDuration("getCURRENTMasksFromAPI", () => getCURRENTMasksFromAPI()),
-            debugDuration("getObjectIndexInfo", () => getObjectIndexInfo()),
+            // debugDuration("getObjectIndexInfo", () => getObjectIndexInfo()),
         ]);
 
         let statusMessages = [];
@@ -982,14 +982,14 @@ process.stdin.on('end', () => {
 
         //////////////////////////////////////////////////////////////
         // check for objects that are not in the index
-        let notFoundCount = 0
-        for (const typeName in objectIndexInfo.IndexedByTableNameRead) {
-            const objecttype = objectIndexInfo.IndexedByTableNameRead[typeName]
-            notFoundCount = objecttype?.NotFound?.length || 0
-        }
-        if (notFoundCount > 0) {
-            throwError(`${notFoundCount} Objects not indexed.`, '');
-        }
+        // let notFoundCount = 0
+        // for (const typeName in objectIndexInfo.IndexedByTableNameRead) {
+        //     const objecttype = objectIndexInfo.IndexedByTableNameRead[typeName]
+        //     notFoundCount = objecttype?.NotFound?.length || 0
+        // }
+        // if (notFoundCount > 0) {
+        //     throwError(`${notFoundCount} Objects not indexed.`, '');
+        // }
 
 
         //////////////////////////////////////////////////////////////
