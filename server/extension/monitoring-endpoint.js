@@ -4,10 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const os = require('os');
-
-// changes for local pg.bundle, build via "npx esbuild node_modules/pg/lib/index.js --bundle --platform=node --target=node18 --outfile=src/pg.bundle.js"
-// const pg = require('pg');
-const pg = module.exports;
+const pg = require('pg');
 
 let info = {}
 if (process.argv.length >= 3) {

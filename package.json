@@ -1,8 +1,5 @@
 {
   "dependencies": {
-    "circular-json": "^0.5.9",
-    "flatted": "^3.4.4",
-    "https": "^1.0.0",
     "pg": "^8.14.1"
   }
 }
