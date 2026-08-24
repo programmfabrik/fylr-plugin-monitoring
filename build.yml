@@ -3,18 +3,21 @@ server:
     - server
     - l10n
     - webfrontend/monitoring-endpoint.css
-
-webfrontend:
-  coffee1:
-    - webfrontend/monitoring-endpoint.coffee
-  install:
-    - webfrontend/monitoring-endpoint.css
-
-build:
+  # assembled server-side files, sources in the order written
   bundles:
     - out: server/extension/monitoring-endpoint.js
       sources:
         - src/pg.bundle.js
         - server/extension/monitoring-endpoint.js
-  zip_aliases:
-    - monitoringEndpoint.zip
+
+webfrontend:
+  # assembled into plugin.webfrontend.url, in this order:
+  # .coffee is compiled (CoffeeScript 1.x), anything else taken verbatim
+  bundles:
+    - sources:
+        - webfrontend/monitoring-endpoint.coffee
+  install:
+    - webfrontend/monitoring-endpoint.css
+
+zip_aliases:
+  - monitoringEndpoint.zip
