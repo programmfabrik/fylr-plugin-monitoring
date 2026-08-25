@@ -5,24 +5,11 @@
 
 server:
   install:
-    - server
-    - l10n
-
-webfrontend:
-  # assembled into plugin.webfrontend.url, in this order:
-  # .coffee is compiled (CoffeeScript 1.x), anything else taken verbatim
+  - l10n/monitoring-endpoint.csv
   bundles:
-    - sources:
-        - webfrontend/monitoring-endpoint.coffee
-  install:
-    - webfrontend/monitoring-endpoint.css
+    - out: server/extension/monitoring-endpoint.js
+      sources:
+      - server/extension/monitoring-endpoint.js
 
-# "pg" is declared in package.json and resolved into the delivered extension by
-# the build (#80732) — node_modules never ships, and nothing here has to name
-# the dependency.
-
-# monitoringEndpoint.zip is the name this plugin has always published. fylr
-# updates a url plugin by re-fetching the url it stored at install time, so
-# instances hold that url and it must keep resolving.
 zip_aliases:
   - monitoringEndpoint.zip

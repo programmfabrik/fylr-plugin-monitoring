@@ -12,9 +12,6 @@ plugin:
     api-version:
       require: 1
   l10n: l10n/monitoring-endpoint.csv
-  webfrontend:
-    url: monitoring-endpoint.js
-    css: monitoring-endpoint.css
 
 base_url_prefix: "webfrontend"
 
