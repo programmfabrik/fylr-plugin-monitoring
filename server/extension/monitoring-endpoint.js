@@ -20,6 +20,10 @@ if (process.argv[3]) {
     }
 }
 
+// check for kubernetes-env
+const platform = process?.env?.FYLR_PLATFORM;
+let isK8s = platform === 'k8s';
+
 let internal_api_url = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.internal_url || "http://fylr.localhost:8082"
 let opensearch_api_url = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.opensearch_url || "http://opensearch:9200"
 let postgres_username = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.postgres_username || "fylr"
@@ -567,8 +571,6 @@ process.stdin.on('end', () => {
             dns_url.searchParams.set("password", postgres_password);
         }
 
-        console.error("Updated DSN for PostgreSQL connection: " + dns_url.toString());
-
         const updatedDsn = dns_url.toString();
 
         return new Promise(async (resolve, reject) => {
@@ -937,7 +939,7 @@ process.stdin.on('end', () => {
     }
 
     async function fetchData() {
-        const [
+        let [
             statsInfoResult,
             sessionInfoResult,
             currentResult,
@@ -969,6 +971,10 @@ process.stdin.on('end', () => {
             // debugDuration("getObjectIndexInfo", () => getObjectIndexInfo()),
         ]);
 
+        if (isK8s) {
+            sqlBackupsResult = null;
+        }
+
         let statusMessages = [];
 
         //////////////////////////////////////////////////////////////
@@ -995,7 +1001,7 @@ process.stdin.on('end', () => {
 
         //////////////////////////////////////////////////////////////
         // get ram, ram_quota, number of cpus, and cpu_quota
-        result.host_data = getHostOS();
+        result.host_data = isK8s ? 'k8s' : getHostOS();
 
         //////////////////////////////////////////////////////////////
         // check mysql-backups, a successfull backup from yesterday is wanted
@@ -1465,13 +1471,13 @@ process.stdin.on('end', () => {
         }
 
         // check of host-os-release file was read properly
-        if (result.host_data.error !== null) {
+        if (!isK8s && result.host_data.error !== null) {
             increaseStatus('warning');
             statusMessages.push('Host os-release file: ' + result.host_data.error);
         }
 
         // check backups
-        if (result.sqlbackups !== true) {
+        if (!isK8s && result.sqlbackups !== true) {
             increaseStatus('warning');
             statusMessages.push('last Backup not found');
         }
