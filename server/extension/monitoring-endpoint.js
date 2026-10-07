@@ -1010,7 +1010,7 @@ process.stdin.on('end', () => {
         } 
         if(isK8s) {
             // list all relevant environment variables (if they exist) for Kubernetes as host data
-            result.host_data = [];
+            result.host_data = {};
             const relevantEnvVars = [
                 "HOSTNAME",
                 "KUBERNETES_PORT",
