@@ -20,9 +20,13 @@ if (process.argv[3]) {
     }
 }
 
-// check for kubernetes-env
-const platform = process?.env?.FYLR_PLATFORM;
-let isK8s = platform === 'k8s';
+// check for kubernetes-env (var FYLR_PLATFORM is k8s or KUBERNETES_PORT is not empty)
+let platform = 'local';
+let isK8s = false;
+if (process?.env?.FYLR_PLATFORM == 'k8s' || (process?.env?.KUBERNETES_PORT && process?.env?.KUBERNETES_PORT !== '')) {
+    platform = 'k8s';
+    isK8s = true;
+}
 
 let internal_api_url = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.internal_url || "http://fylr.localhost:8082"
 let opensearch_api_url = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.opensearch_url || "http://opensearch:9200"
@@ -1001,7 +1005,29 @@ process.stdin.on('end', () => {
 
         //////////////////////////////////////////////////////////////
         // get ram, ram_quota, number of cpus, and cpu_quota
-        result.host_data = isK8s ? 'k8s' : getHostOS();
+        if(!isK8s) {
+            result.host_data = getHostOS();
+        } 
+        if(isK8s) {
+            // list all relevant environment variables (if they exist) for Kubernetes as host data
+            result.host_data = [];
+            const relevantEnvVars = [
+                "HOSTNAME",
+                "KUBERNETES_PORT",
+                "KUBERNETES_PORT_443_TCP",
+                "KUBERNETES_PORT_443_TCP_ADDR",
+                "KUBERNETES_PORT_443_TCP_PORT",
+                "KUBERNETES_PORT_443_TCP_PROTO",
+                "KUBERNETES_SERVICE_HOST",
+                "KUBERNETES_SERVICE_PORT",
+                "KUBERNETES_SERVICE_PORT_HTTPS"
+            ];
+            for (const envVar of relevantEnvVars) {
+                if (process.env[envVar]) {
+                    result.host_data.push({ [envVar]: process.env[envVar] });
+                }
+            }
+        }
 
         //////////////////////////////////////////////////////////////
         // check mysql-backups, a successfull backup from yesterday is wanted
@@ -1621,6 +1647,8 @@ process.stdin.on('end', () => {
         if (statusMessages.length > 0) {
             result.statusmessage = 'Problems: ' + statusMessages.join(', ');
         }
+
+        result.platform = platform;
 
         console.log(JSON.stringify(result, null, 2));
     }
