@@ -1024,7 +1024,7 @@ process.stdin.on('end', () => {
             ];
             for (const envVar of relevantEnvVars) {
                 if (process.env[envVar]) {
-                    result.host_data.push({ [envVar]: process.env[envVar] });
+                    result.host_data[envVar] = process.env[envVar];
                 }
             }
         }
