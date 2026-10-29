@@ -1252,6 +1252,18 @@ process.stdin.on('end', () => {
             }
         }
 
+        // check if core-mapping-plugin is installed and enabled
+        result.coreMappingPluginEnabled = false;
+
+        for (let i = 0; i < pluginInfoResult.Plugins.length; i++) {
+            if (pluginInfoResult.Plugins[i].Name == 'core-mapping') {
+                if (pluginInfoResult.Plugins[i].Enabled == true) {
+                    result.coreMappingPluginEnabled = true;
+                    break;
+                }
+            }
+        }
+
         // validation
         let validationEnabled = false;
         result.validation = {};
