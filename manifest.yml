@@ -124,8 +124,7 @@ extensions:
               value: "%_exec.pluginDir%/server/extension/monitoring-endpoint.js"
             - type: "value"
               value: "%info.json%"
-
-  monitoring_with_diskusage:
+  monitoring_with_diskandindex:
     plugin_user:
       base_config: "monitoring_endpoint.root_api_user"
     exec:
@@ -142,7 +141,7 @@ extensions:
             - type: "value"
               value: "%info.json%"
             - type: "value"
-              value: "diskusage:true"
+              value: "diskandindex:true"
 
 system_rights:
   - name: monitoring_endpoint

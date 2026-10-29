@@ -11,12 +11,12 @@ if (process.argv.length >= 3) {
     info = JSON.parse(process.argv[2])
 }
 
-let withDiskUsage = false;
+let withDiskAndIndexChecks = false;
 if (process.argv[3]) {
     let test = process.argv[3];
 
-    if (test == 'diskusage:true') {
-        withDiskUsage = true;
+    if (test == 'diskandindex:true') {
+        withDiskAndIndexChecks = true;
     }
 }
 
@@ -79,35 +79,39 @@ process.stdin.on('end', () => {
     // Accesstoken
     let access_token = info.api_user_access_token;
     let root_access_token = info.plugin_user_access_token;
+    // the webapp forwards /inspect to the backend only for root users; the backend port itself requires a secret since fylr 6.36
+    const inspect_url = (info.external_url || '').replace(/\/$/, '');
 
     function getPluginInfoFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = internal_api_url + '/inspect/plugins';
+            var url = inspect_url + '/inspect/plugins/';
             fetch(url, {
                 headers: {
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer ' + root_access_token
                 },
             })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
                     } else {
-                        throwError("Fehler bei der Anfrage an /api/v1/plugin/ ", '');
+                        throwError("Fehler bei der Anfrage an /inspect/plugins/ ", '');
                     }
                 })
                 .catch(error => {
                     console.log(error);
-                    throwError("Fehler bei der Anfrage an /api/v1/plugin ", '');
+                    throwError("Fehler bei der Anfrage an /inspect/plugins/ ", '');
                 });
         });
     }
 
     function getStatsInfoFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = internal_api_url + '/inspect/system/status/'
+            var url = inspect_url + '/inspect/system/status/'
             fetch(url, {
                 headers: {
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer ' + root_access_token
                 },
             })
                 .then(response => {
@@ -126,44 +130,49 @@ process.stdin.on('end', () => {
 
     function getTagInfoFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = internal_api_url + '/inspect/tags/'
+            var url = inspect_url + '/inspect/tags/'
             fetch(url, {
                 headers: {
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer ' + root_access_token
                 },
             })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
                     } else {
-                        throwError("Fehler bei der Anfrage an /inspect/system/status/ ", '');
+                        throwError("Fehler bei der Anfrage an /inspect/tags/ ", '');
                     }
                 })
                 .catch(error => {
                     console.log(error);
-                    throwError("Fehler bei der Anfrage an /inspect/system/status/ ", '');
+                    throwError("Fehler bei der Anfrage an /inspect/tags/ ", '');
                 });
         });
     }
 
     function getObjectIndexInfo() {
+        if (!withDiskAndIndexChecks) {
+            return false;
+        }
         return new Promise((resolve, reject) => {
-            var url = internal_api_url + '/inspect/objects/?index=not+found+READ'
+            var url = inspect_url + '/inspect/objects/?index=all'
             fetch(url, {
                 headers: {
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer ' + root_access_token
                 },
             })
                 .then(response => {
                     if (response.ok) {
                         resolve(response.json());
                     } else {
-                        throwError("Fehler bei der Anfrage an /inspect/objects/?index=not+found+READ ", '');
+                        throwError("Fehler bei der Anfrage an /inspect/objects/?index=all ", '');
                     }
                 })
                 .catch(error => {
                     console.log(error);
-                    throwError("Fehler bei der Anfrage an /inspect/objects/?index=not+found+READ ", '');
+                    throwError("Fehler bei der Anfrage an /inspect/objects/?index=all ", '');
                 });
         });
     }
@@ -258,10 +267,11 @@ process.stdin.on('end', () => {
 
     function getConfigFromInspectAPI() {
         return new Promise((resolve, reject) => {
-            var url = internal_api_url + '/inspect/config'
+            var url = inspect_url + '/inspect/config/'
             fetch(url, {
                 headers: {
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer ' + root_access_token
                 },
             })
                 .then(response => {
@@ -279,14 +289,15 @@ process.stdin.on('end', () => {
     }
 
     function getPoolStatsFromAPI() {
-        if (!withDiskUsage) {
+        if (!withDiskAndIndexChecks) {
             return false;
         }
         return new Promise((resolve, reject) => {
-            var url = internal_api_url + '/inspect/pools/1/'
+            var url = inspect_url + '/inspect/pools/1/'
             fetch(url, {
                 headers: {
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer ' + root_access_token
                 },
             })
                 .then(response => {
@@ -304,7 +315,7 @@ process.stdin.on('end', () => {
     }
 
     function getDiskUsageFromAPI() {
-        if (!withDiskUsage) {
+        if (!withDiskAndIndexChecks) {
             return false;
         }
         return new Promise((resolve, reject) => {
@@ -323,10 +334,11 @@ process.stdin.on('end', () => {
                 .then(objecttypes => {
                     objecttypes = objecttypes.map((objecttype) => objecttype.objecttype.name);
                     let statsPromises = objecttypes.map(objecttype => {
-                        let url = `${internal_api_url}/inspect/objecttypes/${objecttype}/`;
+                        let url = `${inspect_url}/inspect/objecttypes/${objecttype}/`;
                         return fetch(url, {
                             headers: {
-                                'Accept': 'application/json'
+                                'Accept': 'application/json',
+                                'Authorization': 'Bearer ' + root_access_token
                             },
                         })
                             .then(response => {
@@ -388,7 +400,6 @@ process.stdin.on('end', () => {
         return new Promise((resolve, reject) => {
             // check sqldumps
             const sqlBackupDir = '/fylr/files/sqlbackups/';
-
             fs.readdir(sqlBackupDir, (err, files) => {
                 if (err) {
                     return resolve(false);
@@ -736,7 +747,7 @@ process.stdin.on('end', () => {
 
         const payload = getErrorFileCountPayload(objectTypeToFileColumnPath, poolIds)
 
-        const response = await fetch(info.api_url + "/api/v1/search?debug=SearchMain&pretty=0&access_token" + root_access_token, {
+        const response = await fetch(info.api_url + "/api/v1/search?debug=SearchMain&pretty=0&access_token=" + root_access_token, {
             method: "POST",
             headers: {
                 "Accept": "application/json",
@@ -957,7 +968,7 @@ process.stdin.on('end', () => {
             sqlBackupsResult,
             settingsResult,
             currentMasksResult,
-            // objectIndexInfo
+            objectIndexInfo
         ] = await Promise.all([
             debugDuration("getStatsInfoFromAPI", () => getStatsInfoFromAPI()),
             debugDuration("getSessionInfoFromAPI", () => getSessionInfoFromAPI()),
@@ -972,7 +983,7 @@ process.stdin.on('end', () => {
             debugDuration("checkSqlBackups", () => checkSqlBackups()),
             debugDuration("getSettingsFromAPI", () => getSettingsFromAPI()),
             debugDuration("getCURRENTMasksFromAPI", () => getCURRENTMasksFromAPI()),
-            // debugDuration("getObjectIndexInfo", () => getObjectIndexInfo()),
+            debugDuration("getObjectIndexInfo", () => getObjectIndexInfo()),
         ]);
 
         if (isK8s) {
@@ -989,15 +1000,14 @@ process.stdin.on('end', () => {
 
         //////////////////////////////////////////////////////////////
         // check for objects that are not in the index
-        // let notFoundCount = 0
-        // for (const typeName in objectIndexInfo.IndexedByTableNameRead) {
-        //     const objecttype = objectIndexInfo.IndexedByTableNameRead[typeName]
-        //     notFoundCount = objecttype?.NotFound?.length || 0
-        // }
-        // if (notFoundCount > 0) {
-        //     throwError(`${notFoundCount} Objects not indexed.`, '');
-        // }
-
+        if (withDiskAndIndexChecks) {
+            let notFoundCount = 0
+            for (const typeName in objectIndexInfo?.IndexedByTableNameRead) {
+                const objecttype = objectIndexInfo.IndexedByTableNameRead[typeName]
+                notFoundCount += objecttype?.NotFound?.length || 0
+            }
+            result.indexNotFound = notFoundCount;
+        }
 
         //////////////////////////////////////////////////////////////
         // get ram, ram_quota, number of cpus, and cpu_quota
@@ -1340,7 +1350,7 @@ process.stdin.on('end', () => {
         }
 
         // filestats
-        if (withDiskUsage) {
+        if (withDiskAndIndexChecks) {
             result.file_stats = {};
             result.file_stats.count = 0;
             result.file_stats.size = 0;
