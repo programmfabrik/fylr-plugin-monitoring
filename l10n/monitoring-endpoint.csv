@@ -49,7 +49,6 @@ server.config.parameter.system.monitoring_endpoint.root_api_user.label,Root API-
 server.config.parameter.system.monitoring_endpoint.enable_debug.label,Debug-Ausgabe (fylr-log) aktivieren,Enable debug output (fylr-log)
 server.config.parameter.system.monitoring_endpoint.enable_debug.checkbox,Aktivieren,Activate
 
-server.config.parameter.system.monitoring_endpoint.internal_url.label,Interne API-URL überschreiben,Override internal API-URL
 server.config.parameter.system.monitoring_endpoint.opensearch_url.label,Opensearch API-URL überschreiben,Override Opensearch API-URL
 server.config.parameter.system.monitoring_endpoint.postgres_username.label,PostgreSQL Benutzername überschreiben,Override PostgreSQL Username
 server.config.parameter.system.monitoring_endpoint.postgres_password.label,PostgreSQL Passwort überschreiben,Override PostgreSQL Password

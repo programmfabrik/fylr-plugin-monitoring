@@ -28,14 +28,10 @@ if (process?.env?.FYLR_PLATFORM == 'k8s' || (process?.env?.KUBERNETES_PORT && pr
     isK8s = true;
 }
 
-let internal_api_url = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.internal_url || "http://fylr.localhost:8082"
 let opensearch_api_url = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.opensearch_url || "http://opensearch:9200"
 let postgres_username = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.postgres_username || "fylr"
 let postgres_password = info.config?.plugin['monitoring-endpoint']?.config['monitoring_endpoint']?.postgres_password || "fylr"
 
-if (internal_api_url.endsWith('/')) {
-    internal_api_url = internal_api_url.slice(0, -1);
-}
 if (opensearch_api_url.endsWith('/')) {
     opensearch_api_url = opensearch_api_url.slice(0, -1);
 }
@@ -1015,10 +1011,10 @@ process.stdin.on('end', () => {
 
         //////////////////////////////////////////////////////////////
         // get ram, ram_quota, number of cpus, and cpu_quota
-        if(!isK8s) {
+        if (!isK8s) {
             result.host_data = getHostOS();
-        } 
-        if(isK8s) {
+        }
+        if (isK8s) {
             // list all relevant environment variables (if they exist) for Kubernetes as host data
             result.host_data = {};
             const relevantEnvVars = [
