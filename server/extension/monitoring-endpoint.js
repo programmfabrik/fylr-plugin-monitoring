@@ -126,7 +126,8 @@ process.stdin.on('end', () => {
 
     function getTagInfoFromAPI() {
         return new Promise((resolve, reject) => {
-            var url = inspect_url + '/inspect/tags/'
+            // var url = inspect_url + '/inspect/tags/'
+            var url = info.api_url + '/api/v1/tags?access_token=' + access_token
             fetch(url, {
                 headers: {
                     'Accept': 'application/json',
@@ -1285,8 +1286,22 @@ process.stdin.on('end', () => {
         if (validationEnabled == true) {
             // check if all objecttypes and tags, which are used in validation still exist!
             const objecttypeList = currentResult.tables.map(item => item.name);
-
-            const tagList = tagInfoResult.Tags.flatMap(item => item.Tags.map(tag => tag.Id));
+            console.error("tagInfoResult", tagInfoResult);
+            /*
+                tagInfoResult [
+                {
+                    _basetype: 'taggroup',
+                    taggroup: { _id: 8, type: 'checkbox', displayname: [Object] },
+                    _tags: [ [Object], [Object] ]
+                },
+                {
+                    _basetype: 'taggroup',
+                    taggroup: { _id: 9, type: 'checkbox', displayname: [Object] },
+                    _tags: [ [Object], [Object] ]
+                }
+                ]            
+            */
+            const tagList = tagInfoResult.flatMap(item => item._tags.map(tag => tag._id));
 
             // check tags
             let tagFilterFine = false;
