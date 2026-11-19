@@ -1286,21 +1286,7 @@ process.stdin.on('end', () => {
         if (validationEnabled == true) {
             // check if all objecttypes and tags, which are used in validation still exist!
             const objecttypeList = currentResult.tables.map(item => item.name);
-            console.error("tagInfoResult", tagInfoResult);
-            /*
-                tagInfoResult [
-                {
-                    _basetype: 'taggroup',
-                    taggroup: { _id: 8, type: 'checkbox', displayname: [Object] },
-                    _tags: [ [Object], [Object] ]
-                },
-                {
-                    _basetype: 'taggroup',
-                    taggroup: { _id: 9, type: 'checkbox', displayname: [Object] },
-                    _tags: [ [Object], [Object] ]
-                }
-                ]            
-            */
+
             const tagList = tagInfoResult.flatMap(item => item._tags.map(tag => tag._id));
 
             // check tags
